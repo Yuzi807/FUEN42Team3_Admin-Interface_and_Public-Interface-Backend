@@ -1,0 +1,186 @@
+﻿@model FUEN42Team3.Backend.Models.ViewModels.QueryViewModel<CommentReportViewModel>
+@using FUEN42Team3.Backend.Models.ViewModels
+@using X.PagedList.Mvc.Core
+
+@{
+    ViewData["Title"] = "留言檢舉管理 | GhostToys魔型仔";
+    Layout = "_Layout";
+}
+
+<div class="page-inner">
+    <div class="page-header">
+        <h4 class="page-title">留言檢舉管理</h4>
+    </div>
+    <div class="page-category">
+        <div class="col-md-12">
+
+            <!-- 🔍 搜尋表單 -->
+            
+            <form method="get" class="mb-3 d-flex flex-wrap gap-2 align-items-center">
+
+    <label class="me-2">顯示筆數：</label>
+    <select name="pageSize" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+    <option value="5" selected="@(Model.PageSize == 5)">5</option>
+    <option value="10" selected="@(Model.PageSize == 10)">10</option>
+    <option value="25" selected="@(Model.PageSize == 25)">25</option>
+    <option value="2" selected="@(Model.PageSize == 2)">2</option>
+</select>
+<form method="get" class="row g-2 align-items-center">
+    <div class="col-auto">
+        <input type="text" name="keyword" value="@Model.Keyword" class="form-control" placeholder="搜尋標題或作者">
+    </div>
+    <div class="col-auto">
+        <input type="date" name="startDate" value="@Model.StartDate?.ToString("yyyy-MM-dd")" class="form-control">
+    </div>
+    <div class="col-auto">
+        <input type="date" name="endDate" value="@Model.EndDate?.ToString("yyyy-MM-dd")" class="form-control">
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-primary">搜尋</button>
+    </div>
+    <div class="col-auto">
+        <a href="@Url.Action("CommentReports", "Forum")" class="btn btn-secondary">清除</a>
+    </div>
+</form>
+</form>
+            <!-- 📄 資料表 -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>留言內容</th>
+                                    <th>所屬文章</th>
+                                    <th>檢舉人</th>
+                                    <th>檢舉規則</th>
+                                    <th>時間</th>
+                                    <th>狀態</th>
+                                    <th>結果</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                             @if (Model.Items != null && Model.Items.Any())
+                              {  
+                                @foreach (var r in Model.Items)
+                                {
+                                    <tr>
+                                        <td>@r.CommentText</td>
+                                        <td>@r.PostTitle</td>
+                                        <td>@r.ReporterName</td>
+                                        <td>@r.RuleName</td>
+                                        <td>@r.ReportTime.ToString("yyyy/MM/dd HH:mm")</td>
+                                        <td>@r.StatusName</td>
+                                        <td>@r.ResultName</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#handleModal-@r.Id">處理</button>
+                                        </td>
+                                    </tr>
+                                 }
+                              }
+                              else
+                                {
+                                    <tr><td colspan="8">目前沒有符合條件的檢舉。</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                        
+
+                        <!-- 🔧 Modal -->
+                        @foreach (var r in Model.Items)
+                        {
+                            <div class="modal fade" id="handleModal-@r.Id" tabindex="-1" aria-labelledby="modalLabel-@r.Id" aria-hidden="true">
+                                <div class="modal-dialog modal-lg">
+                                    <div class="modal-content">
+                                        <form method="post" asp-action="HandleCommentReport">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">處理留言檢舉</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="關閉"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <input type="hidden" name="Id" value="@r.Id" />
+                                                <input type="hidden" name="CommentId" value="@r.CommentId" />
+                                                <input type="hidden" name="ReporterId" value="@r.ReporterId" />
+
+                                                <div><strong>被檢舉者：</strong> @r.CommenterName</div>
+                                                <div><strong>留言內容：</strong> @r.CommentText</div>
+                                                <div><strong>文章標題：</strong> @r.PostTitle</div>
+                                                <div><strong>檢舉人：</strong> @r.ReporterName</div>
+                                                <div><strong>檢舉規則：</strong> @r.RuleName</div>
+                                                <div><strong>檢舉時間：</strong> @r.ReportTime.ToString("yyyy/MM/dd HH:mm")</div>
+
+                                                <div class="mb-3 mt-2">
+                                                    <label class="form-label">審查結果</label>
+                                                    <select name="ResultId" class="form-select" required onchange="toggleCommentOptions(this, @r.Id)">
+                                                        <option value="">-- 請選擇 --</option>
+                                                        <option value="1">違規</option>
+                                                        <option value="2">未違規</option>
+                                                        <option value="3">無效檢舉</option>
+                                                    </select>
+                                                </div>
+
+                                                <div class="alert alert-secondary d-none" id="noticeText-@r.Id">
+                                                    您因違規留言「@r.CommentText」被系統處以相應懲罰，請遵守社群規則。
+                                                </div>
+
+                                                <div class="form-check d-none" id="deleteComment-@r.Id">
+                                                    <input class="form-check-input" type="checkbox" name="DeleteComment" value="true" id="deleteCommentCheck-@r.Id">
+                                                    <label class="form-check-label" for="deleteCommentCheck-@r.Id">
+                                                        同時刪除這則留言
+                                                    </label>
+                                                </div>
+                                            </div>
+
+                                            <div class="modal-footer">
+                                                <button type="submit" class="btn btn-primary" onclick="return confirm('確定送出處理結果？')">送出</button>
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+
+                        <script>
+                            function toggleCommentOptions(select, id) {
+                                const notice = document.getElementById('noticeText-' + id);
+                                const del = document.getElementById('deleteComment-' + id);
+
+                                if (select.value == "1") {
+                                    notice.classList.remove("d-none");
+                                    del.classList.remove("d-none");
+                                } else {
+                                    notice.classList.add("d-none");
+                                    del.classList.add("d-none");
+                                }
+                            }
+                        </script>
+                    </div>
+
+                    <!-- 📌 分頁 -->
+                    <div class="d-flex justify-content-center">
+                        @Html.PagedListPager(Model.Items, page =>
+                            Url.Action("CommentReports", new {
+                                page,
+                                pageSize = Model.PageSize,
+                                keyword = Model.Keyword
+                            }),
+                            new PagedListRenderOptions
+                            {
+                                UlElementClasses = new[] { "pagination" },
+                                LiElementClasses = new[] { "page-item" },
+                                PageClasses = new[] { "page-link" },
+                                DisplayLinkToFirstPage = PagedListDisplayMode.Always,
+                                DisplayLinkToLastPage = PagedListDisplayMode.Always,
+                                DisplayLinkToPreviousPage = PagedListDisplayMode.Always,
+                                DisplayLinkToNextPage = PagedListDisplayMode.Always,
+                                MaximumPageNumbersToDisplay = 5
+                            })
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

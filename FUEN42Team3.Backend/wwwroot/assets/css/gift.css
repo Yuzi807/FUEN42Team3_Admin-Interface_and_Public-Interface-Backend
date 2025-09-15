@@ -1,0 +1,140 @@
+body {
+    background-color: #f4f6f9;
+    /* 柔和灰藍背景 */
+    font-family: 'Noto Sans TC', sans-serif;
+}
+
+.content {
+    padding: 20px;
+}
+
+.table-container {
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    padding: 20px;
+}
+
+.filter-bar {
+    margin-bottom: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: center;
+}
+
+.search-bar {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.modal-header {
+    background-color: #1e3a8a;
+    /* 深藍色 */
+    color: #ffffff;
+}
+
+.btn-primary {
+    background-color: #3b82f6;
+    /* 亮藍色按鈕 */
+    border-color: #3b82f6;
+}
+
+.btn-primary:hover {
+    background-color: #2563eb;
+    /* 較深藍色 */
+    border-color: #2563eb;
+}
+
+.btn-toggle {
+    background-color: #10b981;
+    /* 綠色上架按鈕 */
+    border-color: #10b981;
+}
+
+.btn-toggle:hover {
+    background-color: #059669;
+    border-color: #059669;
+}
+
+.btn-toggle-off {
+    background-color: #ef4444;
+    /* 紅色下架按鈕 */
+    border-color: #ef4444;
+}
+
+.btn-toggle-off:hover {
+    background-color: #dc2626;
+    border-color: #dc2626;
+}
+
+.btn-secondary {
+    background-color: #6b7280;
+    /* 灰色取消按鈕 */
+    border-color: #6b7280;
+}
+
+.btn-secondary:hover {
+    background-color: #4b5563;
+    border-color: #4b5563;
+}
+
+.status-active {
+    color: #10b981;
+    font-weight: bold;
+}
+
+.status-expired {
+    color: #ef4444;
+    font-weight: bold;
+}
+
+.status-scheduled {
+    color: #f59e0b;
+    font-weight: bold;
+}
+
+.status-deleted {
+    color: #6b7280;
+    font-weight: bold;
+}
+
+.thumbnail {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.preview-img {
+    max-width: 100px;
+    max-height: 100px;
+    object-fit: cover;
+    border-radius: 4px;
+    margin-top: 10px;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 8px;
+    /* 按鈕間距 */
+    flex-wrap: nowrap;
+}
+
+.pagination-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+}
+
+.pagination {
+    margin: 0;
+}
+
+.per-page-selector {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}

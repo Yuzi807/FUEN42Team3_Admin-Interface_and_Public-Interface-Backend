@@ -1,0 +1,214 @@
+﻿@model FUEN42Team3.Backend.Models.ViewModels.NewsIndexViewModel
+
+<div class="page-inner">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">公告管理與分類</h4>
+            </div>
+            <div class="card-body">
+                <ul class="nav nav-tabs nav-line nav-color-secondary" id="line-tab" role="tablist">
+                    <li class="nav-item submenu" role="presentation">
+                        <a class="nav-link active" id="pills-news-tab" data-bs-toggle="pill" href="#pills-news" role="tab"
+                           aria-controls="pills-news" aria-selected="true">公告文章</a>
+                    </li>
+                    <li class="nav-item submenu" role="presentation">
+                        <a class="nav-link" id="pills-category-tab" data-bs-toggle="pill" href="#pills-category" role="tab"
+                           aria-controls="pills-category" aria-selected="false" tabindex="-1">公告分類</a>
+                    </li>
+                </ul>
+            </div>
+            <div class="tab-content mt-2 mb-3" id="pills-without-border-tabContent">
+                <!-- 公告文章 -->
+                <div class="tab-pane fade show active" id="pills-news" role="tabpanel" aria-labelledby="pills-news-tab">
+                    <!-- 篩選搜尋區 -->
+                    <div class="card shadow-sm mx-3 pb-3">
+                        <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
+                            <h6 class="m-0 font-weight-bold"><i class="fas fa-filter mr-1"></i> 篩選搜尋</h6>
+                            <button class="btn btn-light btn-sm">
+                                <i class="fas fa-redo"></i> 重設
+                            </button>
+                        </div>
+                        <div class="card-body pb-0">
+                            <!-- 篩選區略（如原稿） -->
+                            @* ... *@
+                        </div>
+                    </div>
+                    <!-- 操作按鈕（如原稿） -->
+                    <div class="d-flex">
+                        <div class="card-body">
+                            <a asp-controller="News" asp-action="Create" class="btn btn-secondary btn-round mb-3 me-2">
+                                <span class="btn-label">
+                                    <i class="fa fa-plus"></i>
+                                </span> 新增公告
+                            </a>
+                            <button class="btn btn-primary btn-round mb-3 me-2">
+                                <span class="btn-label">
+                                    <i class="far fa-trash-alt"></i>
+                                </span>批量刪除
+                            </button>
+                            <button class="btn btn-success btn-round mb-3 me-2">
+                                <span class="btn-label">
+                                    <i class="far fa-save"></i>
+                                </span>儲存變更
+                            </button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table id="news-datatables" class="display table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>選取</th>
+                                    <th>置頂</th>
+                                    <th>編號</th>
+                                    <th>文章標題</th>
+                                    <th>分類</th>
+                                    <th>發文者</th>
+                                    <th>發布時間</th>
+                                    <th>更新時間</th>
+                                    <th>當日瀏覽</th>
+                                    <th>累積瀏覽</th>
+                                    <th>狀態</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.NewsList)
+                                {
+                                    <tr>
+                                        <td><input type="checkbox" class="news-row-check" /></td>
+                                        <td>
+                                            @if (item.IsPinned)
+                                            {
+                                                <i class="fas fa-thumbtack text-warning"></i>
+                                            }
+                                            else
+                                            {
+                                                <i class="fas fa-thumbtack"></i>
+                                            }
+                                        </td>
+                                        <td>@item.Id</td>
+                                        <td>@item.Title</td>
+                                        <td>@item.CategoryName</td>
+                                        <td>@item.UserName</td>
+                                        <td>@item.PublishedAt?.ToString("yyyy-MM-dd HH:mm")</td>
+                                        <td>@item.UpdatedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                                        <td>@item.ViewCountToday</td>
+                                        <td>@item.ViewCountTotal.ToString("N0")</td>
+                                        <td>
+                                            @{
+                                                var status = item.Status;
+                                                if (status == "上架")
+                                                {
+                                                    <span class="badge badge-success">上架</span>
+                                                }
+                                                else if (status == "下架")
+                                                {
+                                                    <span class="badge badge-count">下架</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge badge-info">草稿</span>
+                                                }
+                                            }
+                                        </td>
+                                        <td>
+                                            <a href="@Url.Action("Edit", new { id = item.Id })">
+                                                <i class="fa fa-edit" title="編輯"></i>
+                                            </a>
+                                            <a href="@Url.Action("Delete", new { id = item.Id })">
+                                                <i class="fa fa-times" title="刪除"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- 新增文章Modal -->
+                </div>
+                <!-- 公告分類 -->
+                <div class="tab-pane fade" id="pills-category" role="tabpanel" aria-labelledby="pills-category-tab">
+                    <!-- 篩選搜尋區 -->
+                    <div class="card shadow-sm mx-3 pb-3">
+                        <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
+                            <h6 class="m-0 font-weight-bold"><i class="fas fa-filter mr-1"></i> 篩選搜尋</h6>
+                            <button class="btn btn-light btn-sm">
+                                <i class="fas fa-redo"></i> 重設
+                            </button>
+                        </div>
+                        <div class="card-body pb-0">
+                            <!-- 篩選區略（如原稿） -->
+                        </div>
+                    </div>
+                    <!-- 操作按鈕 -->
+                    <div class="d-flex">
+                        <div class="card-body">
+                            <button type="button" class="btn btn-secondary btn-round mb-3 me-2"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#addCategoryModal">
+                                <span class="btn-label">
+                                    <i class="fa fa-plus"></i>
+                                </span> 新增分類
+                            </button>
+                            <button class="btn btn-primary btn-round mb-3 me-2">
+                                <span class="btn-label">
+                                    <i class="far fa-trash-alt"></i>
+                                </span>批量刪除
+                            </button>
+                            <button class="btn btn-success btn-round mb-3 me-2">
+                                <span class="btn-label">
+                                    <i class="far fa-save"></i>
+                                </span>儲存變更
+                            </button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table id="category-datatables" class="display table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>選取</th>
+                                    <th>編號</th>
+                                    <th>名稱</th>
+                                    <th>圖示</th>
+                                    <th>顯示/隱藏</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var cat in Model.CategoryList)
+                                {
+                                    <tr>
+                                        <td><input type="checkbox" class="category-row-check" /></td>
+                                        <td>@cat.Id</td>
+                                        <td>@cat.CategoryName</td>
+                                        <td>
+                                            <img src="@(string.IsNullOrEmpty(cat.IconPath) ? Url.Content("~/assets/img/FUEN42/GhostToys_Icon_Cute.ico") : cat.Icon)"
+                                                 alt="分類圖示"
+                                                 width="32"
+                                                 height="32"
+                                                 class="rounded-circle"
+                                                 onerror="this.src='@Url.Content("~/assets/img/FUEN42/GhostToys_Icon_Cute.ico")'" />
+                                        </td>
+
+                                        <td>
+                                            <input type="checkbox" @(cat.IsVisible)/>
+                                        </td>
+                                        <td>
+                                            <a href="@Url.Action("Edit", new { id = cat.Id })">
+                                                <i class="fa fa-edit" title="編輯"></i>
+                                            </a>
+                                            <a href="@Url.Action("Delete", new { id = cat.Id })">
+                                                <i class="fa fa-times" title="刪除"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

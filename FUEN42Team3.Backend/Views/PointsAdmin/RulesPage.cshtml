@@ -1,0 +1,662 @@
+@{
+    ViewData["Title"] = "點數規則";
+}
+<div class="page-inner">
+    <div class="page-header">
+        <h3 class="fw-bold mb-3">點數規則</h3>
+        <ul class="breadcrumbs">
+            <li class="nav-home"><a href="@Url.Action("Index", "Home")"><i class="fa fa-home"></i></a></li>
+            <li class="separator"><i class="fa fa-angle-right"></i></li>
+            <li class="nav-item">Points</li>
+            <li class="separator"><i class="fa fa-angle-right"></i></li>
+            <li class="nav-item">Rules</li>
+        </ul>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="card-title">規則列表</h4>
+                    <div>
+                        <a href="/hangfire" target="_blank" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-external-link-alt me-1"></i>Hangfire
+                        </a>
+                        <button id="btn-refresh" class="btn btn-primary btn-sm ms-2">
+                            <i class="fas fa-sync-alt me-1"></i>重新整理
+                        </button>
+                        <button class="btn btn-success btn-sm ms-2" id="btn-open-create">
+                            新增規則
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive mb-3">
+                        <table class="table table-striped" id="rules-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>名稱</th>
+                                    <th>狀態</th>
+                                    <th>觸發</th>
+                                    <th>目標</th>
+                                    <th>點數類型</th>
+                                    <th>到期方式</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 新增/編輯 視覺化介面 Modal -->
+<div class="modal fade" id="ruleEditor" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">新增／編輯點數規則</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- 基本資訊 -->
+                <div class="mb-3">
+                    <h6 class="fw-bold">【基本資訊】</h6>
+                    <div class="row g-2 align-items-center">
+                        <div class="col-8">
+                            <label class="form-label">名稱</label>
+                            <input class="form-control" id="f-name" />
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label">狀態</label>
+                            <div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="f-status" id="f-st-enabled"
+                                        value="Enabled">
+                                    <label class="form-check-label" for="f-st-enabled">啟用</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="f-status" id="f-st-disabled"
+                                        value="Disabled" checked>
+                                    <label class="form-check-label" for="f-st-disabled">停用</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 目標設定 -->
+                <div class="mb-3">
+                    <h6 class="fw-bold">【目標設定】</h6>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label">目標對象</label>
+                            <select class="form-select" id="f-target">
+                                <option value="AllMembers">所有會員</option>
+                                <option value="NewMembersLast30Days">近30天新會員</option>
+                                <option value="BirthdayToday">今日壽星</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">觸發事件</label>
+                            <div class="d-flex flex-wrap gap-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="f-trigger" id="tr-schedule"
+                                        value="Schedule" checked>
+                                    <label class="form-check-label" for="tr-schedule">排程</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="f-trigger" id="tr-register"
+                                        value="RegistrationCompleted">
+                                    <label class="form-check-label" for="tr-register">註冊完成</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="f-trigger" id="tr-first"
+                                        value="FirstPurchaseCompleted">
+                                    <label class="form-check-label" for="tr-first">首購完成</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="f-trigger" id="tr-bday"
+                                        value="BirthdayToday">
+                                    <label class="form-check-label" for="tr-bday">生日當天</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="f-trigger" id="tr-spend"
+                                        value="SpendingThreshold">
+                                    <label class="form-check-label" for="tr-spend">消費達標</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="f-trigger" id="tr-custom"
+                                        value="CustomEvent">
+                                    <label class="form-check-label" for="tr-custom">自訂事件</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 d-none" id="row-custom-key">
+                            <label class="form-label">若自訂事件：事件 Key</label>
+                            <input class="form-control" id="f-customKey" placeholder="例如: Campaign2025_Signup" />
+                        </div>
+                        <div class="col-6 d-none" id="row-spend-th">
+                            <label class="form-label">消費達標金額</label>
+                            <input class="form-control" id="f-threshold" type="number" step="0.01"
+                                placeholder="例如: 1000" />
+                        </div>
+                        <div class="col-12">
+                            <button class="btn btn-outline-secondary btn-sm" id="btn-open-cond">進階條件（JSON 編輯器）</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 點數設定 -->
+                <div class="mb-3">
+                    <h6 class="fw-bold">【點數設定】</h6>
+                    <div class="row g-2 align-items-center">
+                        <div class="col-12">
+                            <div class="d-flex flex-wrap align-items-center gap-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="f-ptype" id="pt-fixed"
+                                        value="Fixed" checked>
+                                    <label class="form-check-label" for="pt-fixed">固定</label>
+                                </div>
+                                <input class="form-control" id="f-fixed" type="number" style="max-width:120px"
+                                    value="10" />
+                                <div class="form-check ms-3">
+                                    <input class="form-check-input" type="radio" name="f-ptype" id="pt-rand"
+                                        value="Random">
+                                    <label class="form-check-label" for="pt-rand">隨機</label>
+                                </div>
+                                <input class="form-control" id="f-rmin" type="number" placeholder="5"
+                                    style="max-width:100px" disabled>
+                                <span>~</span>
+                                <input class="form-control" id="f-rmax" type="number" placeholder="20"
+                                    style="max-width:100px" disabled>
+                                <div class="form-check ms-3">
+                                    <input class="form-check-input" type="radio" name="f-ptype" id="pt-pct"
+                                        value="Percentage">
+                                    <label class="form-check-label" for="pt-pct">百分比</label>
+                                </div>
+                                <input class="form-control" id="f-pct" type="number" step="0.01" placeholder="5"
+                                    style="max-width:120px" disabled>
+                                <span>%</span>
+                            </div>
+                        </div>
+                        <div class="col-12 mt-2">
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <label class="form-label">上限 - 每人每月上限</label>
+                                    <input class="form-control" id="f-pum" type="number" placeholder="100" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">本規則總額度（選填）</label>
+                                    <input class="form-control" id="f-budget" type="number" placeholder="50000" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 有效期限 -->
+                <div class="mb-3">
+                    <h6 class="fw-bold">【有效期限】</h6>
+                    <div class="d-flex flex-wrap gap-3 align-items-center">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="f-exp" id="exp-days" value="Days"
+                                checked>
+                            <label class="form-check-label" for="exp-days">到期天數</label>
+                        </div>
+                        <input class="form-control" id="f-expDays" type="number" value="30" style="max-width:120px" />
+                        <div class="form-check ms-3">
+                            <input class="form-check-input" type="radio" name="f-exp" id="exp-fixed" value="FixedDate">
+                            <label class="form-check-label" for="exp-fixed">固定到期日</label>
+                        </div>
+                        <input class="form-control" id="f-expDate" type="date" style="max-width:200px" disabled />
+                        <div class="form-check ms-3">
+                            <input class="form-check-input" type="radio" name="f-exp" id="exp-week"
+                                value="ThisWeekSunday">
+                            <label class="form-check-label" for="exp-week">本週週日</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 活動期間（Start / End） -->
+                <div class="mb-3">
+                    <h6 class="fw-bold">【活動期間】</h6>
+                    <div class="row g-2 align-items-center">
+                        <div class="col-md-6">
+                            <label class="form-label">開始時間</label>
+                            <input class="form-control" id="f-startAt" type="datetime-local" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">結束時間</label>
+                            <input class="form-control" id="f-endAt" type="datetime-local" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 排程設定（僅排程型） -->
+                <div class="mb-3" id="schedule-section">
+                    <h6 class="fw-bold">【排程設定（僅排程型）】</h6>
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label">週期</label>
+                            <select class="form-select" id="sch-period">
+                                <option value="daily">每日</option>
+                                <option value="weekly">每週</option>
+                                <option value="monthly">每月</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">時間</label>
+                            <div class="input-group">
+                                <input class="form-control" id="sch-hh" type="number" min="0" max="23" value="0" />
+                                <span class="input-group-text">:</span>
+                                <input class="form-control" id="sch-mm" type="number" min="0" max="59" value="0" />
+                            </div>
+                        </div>
+                        <div class="col-md-3 d-none" id="sch-week">
+                            <label class="form-label">星期</label>
+                            <select class="form-select" id="sch-dow">
+                                <option value="1">一</option>
+                                <option value="2">二</option>
+                                <option value="3">三</option>
+                                <option value="4">四</option>
+                                <option value="5">五</option>
+                                <option value="6">六</option>
+                                <option value="0">日</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 d-none" id="sch-month">
+                            <label class="form-label">日期</label>
+                            <input class="form-control" id="sch-dom" type="number" min="1" max="31" value="1" />
+                        </div>
+                        <div class="col-12">
+                            <div class="form-text"><a href="#" id="toggle-cron">Cron(進階)</a></div>
+                            <input class="form-control d-none" id="f-cron" placeholder="0 0 * * *" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 通知方式 -->
+                <div class="mb-3">
+                    <h6 class="fw-bold">【通知方式】</h6>
+                    <div class="d-flex flex-wrap gap-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="n-none" checked>
+                            <label class="form-check-label" for="n-none">不通知</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="n-email">
+                            <label class="form-check-label" for="n-email">Email</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="n-app">
+                            <label class="form-check-label" for="n-app">App 推播</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="n-site">
+                            <label class="form-check-label" for="n-site">站內訊息</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 測試與模擬 -->
+                <div class="mb-2">
+                    <h6 class="fw-bold">【測試與模擬】</h6>
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <label class="form-label mb-0">樣本人數</label>
+                        <input class="form-control" id="test-sample" type="number" value="10" style="max-width:120px" />
+                        <button class="btn btn-outline-primary btn-sm" id="btn-estimate">產生預估</button>
+                    </div>
+                    <pre class="bg-light border p-2" id="estimate-out" style="min-height:80px"></pre>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="btn-submit">建立</button>
+            </div>
+        </div>
+    </div>
+    }
+</div>
+
+<!-- 進階條件 JSON Modal -->
+<div class="modal fade" id="condEditor" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">進階條件（JSON）</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <textarea id="f-cond" class="form-control" rows="12" placeholder='{"minAge":18}'></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const api = '/admin/point-rules';
+        let editingId = null;
+
+        // 列表
+        async function loadRules() {
+            const res = await fetch(api);
+            const data = await res.json();
+            const tbody = document.querySelector('#rules-table tbody');
+            tbody.innerHTML = '';
+            const list = Array.isArray(data) ? data : [];
+            list.forEach(r => {
+                const tr = document.createElement('tr');
+                const canSchedule = (r.triggerType === 'Schedule' && !!(r.scheduleCron && r.scheduleCron.trim()));
+                tr.innerHTML = `
+                                                <td>
+                                                    ${r.id}
+                                                    <div><small class="text-muted">PointRuleV2:${r.id}</small></div>
+                                                </td>
+                                                <td>${r.name ?? ''}</td>
+                                                <td>${mapStatus(r.status)}</td>
+                                                <td>${mapTrigger(r.triggerType)}</td>
+                                                <td>${mapTarget(r.target)}</td>
+                                                <td>${mapPointType(r.pointType)}</td>
+                                                <td>${mapExpiry(r)}</td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary me-1" onclick="openEditor(${r.id})">編輯</button>
+                                                    <button class="btn btn-sm btn-outline-success me-1" onclick="runNow(${r.id})">立即執行</button>
+                                        <button class="btn btn-sm btn-outline-warning me-1" ${canSchedule ? '' : 'disabled'} title="${canSchedule ? '建立/更新 Hangfire 排程' : '需將觸發改為【排程】且設定 Cron 才能建立排程'}" onclick="schedule(${r.id})">設定排程</button>
+                                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteRule(${r.id})">刪除</button>
+                                                </td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function mapStatus(s) { return s === 'Enabled' ? '啟用' : '停用'; }
+        function mapTrigger(t) {
+            return ({
+                Schedule: '排程', RegistrationCompleted: '註冊完成', FirstPurchaseCompleted: '首購完成',
+                SpendingThreshold: '消費達標', BirthdayToday: '生日當天', CustomEvent: '自訂事件'
+            })[t] || t || '';
+        }
+        function mapTarget(t) { return ({ AllMembers: '所有會員', NewMembersLast30Days: '近30天新會員', BirthdayToday: '今日壽星' })[t] || t || ''; }
+        function mapPointType(t) { return ({ Fixed: '固定', Random: '隨機', Percentage: '百分比' })[t] || t || ''; }
+        function mapExpiry(r) {
+            if (r.expiryMode === 'FixedDate' && r.expiryDate) return `固定: ${new Date(r.expiryDate).toLocaleDateString()}`;
+            if (r.expiryMode === 'ThisWeekSunday') return '本週週日';
+            return `天數: ${r.expiryDays ?? ''}`;
+        }
+
+        // 開啟編輯器
+        async function openEditor(id) {
+            clearForm(); editingId = id || null;
+            if (id) {
+                const res = await fetch(`${api}/${id}`);
+                if (res.ok) { fillForm(await res.json()); }
+            }
+            new bootstrap.Modal(document.getElementById('ruleEditor')).show();
+        }
+
+        // 表單交互
+        function onPointTypeChange() {
+            const t = document.querySelector('input[name="f-ptype"]:checked').value;
+            document.getElementById('f-fixed').disabled = t !== 'Fixed';
+            document.getElementById('f-rmin').disabled = document.getElementById('f-rmax').disabled = t !== 'Random';
+            document.getElementById('f-pct').disabled = t !== 'Percentage';
+        }
+        function onExpiryChange() {
+            const v = document.querySelector('input[name="f-exp"]:checked').value;
+            document.getElementById('f-expDays').disabled = v !== 'Days';
+            document.getElementById('f-expDate').disabled = v !== 'FixedDate';
+        }
+        function onTriggerChange() {
+            const v = document.querySelector('input[name="f-trigger"]:checked').value;
+            document.getElementById('schedule-section').style.display = (v === 'Schedule') ? '' : 'none';
+            document.getElementById('row-custom-key').classList.toggle('d-none', v !== 'CustomEvent');
+            document.getElementById('row-spend-th').classList.toggle('d-none', v !== 'SpendingThreshold');
+        }
+        function rebuildCron() {
+            const period = document.getElementById('sch-period').value;
+            const hh = clamp(parseInt(document.getElementById('sch-hh').value || '0'), 0, 23);
+            const mm = clamp(parseInt(document.getElementById('sch-mm').value || '0'), 0, 59);
+            let cron = '';
+            document.getElementById('sch-week').classList.toggle('d-none', period !== 'weekly');
+            document.getElementById('sch-month').classList.toggle('d-none', period !== 'monthly');
+            if (period === 'daily') cron = `${mm} ${hh} * * *`;
+            else if (period === 'weekly') { const dow = document.getElementById('sch-dow').value; cron = `${mm} ${hh} * * ${dow}`; }
+            else if (period === 'monthly') { const dom = clamp(parseInt(document.getElementById('sch-dom').value || '1'), 1, 31); cron = `${mm} ${hh} ${dom} * *`; }
+            document.getElementById('f-cron').value = cron;
+        }
+        function clamp(n, min, max) { n = isNaN(n) ? min : n; return Math.max(min, Math.min(max, n)); }
+
+        // JSON Editor
+        document.getElementById('btn-open-cond').addEventListener('click', () => {
+            new bootstrap.Modal(document.getElementById('condEditor')).show();
+        });
+        document.getElementById('toggle-cron').addEventListener('click', (e) => { e.preventDefault(); document.getElementById('f-cron').classList.toggle('d-none'); });
+
+        ['pt-fixed', 'pt-rand', 'pt-pct'].forEach(id => document.getElementById(id).addEventListener('change', onPointTypeChange));
+        ['exp-days', 'exp-fixed', 'exp-week'].forEach(id => document.getElementById(id).addEventListener('change', onExpiryChange));
+        ['tr-schedule', 'tr-register', 'tr-first', 'tr-bday', 'tr-spend', 'tr-custom'].forEach(id => document.getElementById(id).addEventListener('change', onTriggerChange));
+        ['sch-period', 'sch-hh', 'sch-mm', 'sch-dow', 'sch-dom'].forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('input', rebuildCron); });
+
+        // 通知方式互斥規則：
+        // - 勾選「不通知」時，自動取消 Email/App/站內訊息
+        // - 只要勾任一通知渠道，就自動取消「不通知」。若全部取消，則回到「不通知」。
+        const elNone = document.getElementById('n-none');
+        const elEmail = document.getElementById('n-email');
+        const elApp = document.getElementById('n-app');
+        const elSite = document.getElementById('n-site');
+        function syncNotifyToggles() {
+            const any = !!(elEmail.checked || elApp.checked || elSite.checked);
+            elNone.checked = !any;
+        }
+        elNone.addEventListener('change', () => {
+            if (elNone.checked) { elEmail.checked = false; elApp.checked = false; elSite.checked = false; }
+        });
+        [elEmail, elApp, elSite].forEach(el => el.addEventListener('change', syncNotifyToggles));
+
+        // 預估
+        document.getElementById('btn-estimate').addEventListener('click', async () => {
+            const sample = parseInt(document.getElementById('test-sample').value || '10');
+            const amount = parseInt(document.getElementById('f-fixed').value || '0');
+            const qs = new URLSearchParams({ sample, amount });
+            const res = await fetch(`${api}/estimate?${qs}`);
+            document.getElementById('estimate-out').textContent = res.ok ? JSON.stringify(await res.json(), null, 2) : '估算失敗';
+        });
+
+        // 開啟新增
+        document.getElementById('btn-open-create').addEventListener('click', () => openEditor(null));
+
+        // 送出
+        async function submit(statusOverride) {
+            const body = collectForm(statusOverride);
+            const method = editingId ? 'PUT' : 'POST';
+            const url = editingId ? `${api}/${editingId}` : api;
+            const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            if (!res.ok) { notify('儲存失敗', 'danger'); return; }
+            notify('已儲存', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('ruleEditor'))?.hide();
+            await loadRules();
+        }
+        document.getElementById('btn-submit').addEventListener('click', () => submit());
+
+        // 操作按鈕
+        async function schedule(id) {
+            const res = await fetch(`${api}/${id}/schedule`, { method: 'POST' });
+            if (res.ok) { notify('已建立排程', 'success'); return; }
+            try { const err = await res.json(); notify(err.message || '排程失敗', 'danger'); }
+            catch { notify('排程失敗', 'danger'); }
+        }
+        async function runNow(id) { const res = await fetch(`${api}/${id}/run-now`, { method: 'POST' }); notify(res.ok ? '已加入佇列' : '執行失敗', res.ok ? 'success' : 'danger'); }
+        async function deleteRule(id) {
+            if (!confirm('確定要刪除此規則嗎？此操作無法復原。')) return;
+            try {
+                const res = await fetch(`${api}/${id}`, { method: 'DELETE' });
+                if (!res.ok) {
+                    try { const err = await res.json(); notify(err.message || '刪除失敗', 'danger'); }
+                    catch { notify('刪除失敗', 'danger'); }
+                    return;
+                }
+                notify('已刪除', 'success');
+                await loadRules();
+            } catch { notify('刪除失敗', 'danger'); }
+        }
+        window.schedule = schedule; window.runNow = runNow; window.openEditor = openEditor; window.deleteRule = deleteRule;
+
+        function collectForm(statusOverride) {
+            const status = statusOverride ?? (document.getElementById('f-st-enabled').checked ? 'Enabled' : 'Disabled');
+            const triggerType = document.querySelector('input[name="f-trigger"]:checked').value;
+            const pointType = document.querySelector('input[name="f-ptype"]:checked').value;
+            const expiryMode = document.querySelector('input[name="f-exp"]:checked').value;
+            let scheduleCron = document.getElementById('f-cron').value.trim();
+            if (triggerType === 'Schedule' && !scheduleCron) { rebuildCron(); scheduleCron = document.getElementById('f-cron').value.trim(); }
+            const body = {
+                name: document.getElementById('f-name').value,
+                status,
+                triggerType,
+                customEventKey: document.getElementById('f-customKey').value || null,
+                conditionsJson: document.getElementById('f-cond').value || null,
+                pointType,
+                fixedAmount: toInt(document.getElementById('f-fixed').value),
+                randomMin: toInt(document.getElementById('f-rmin').value),
+                randomMax: toInt(document.getElementById('f-rmax').value),
+                percentage: toFloat(document.getElementById('f-pct').value),
+                perUserMonthlyLimit: toInt(document.getElementById('f-pum').value),
+                totalBudget: toInt(document.getElementById('f-budget').value),
+                expiryMode,
+                expiryDays: toInt(document.getElementById('f-expDays').value),
+                expiryDate: document.getElementById('f-expDate').value ? new Date(document.getElementById('f-expDate').value).toISOString() : null,
+                scheduleCron: triggerType === 'Schedule' ? (scheduleCron || null) : null,
+                target: document.getElementById('f-target').value,
+                startAt: document.getElementById('f-startAt').value ? new Date(document.getElementById('f-startAt').value).toISOString() : null,
+                endAt: document.getElementById('f-endAt').value ? new Date(document.getElementById('f-endAt').value).toISOString() : null,
+                notifyEmail: document.getElementById('n-email').checked,
+                notifyAppPush: document.getElementById('n-app').checked,
+                notifySiteMessage: document.getElementById('n-site').checked,
+                spendingThresholdAmount: triggerType === 'SpendingThreshold' ? toFloat(document.getElementById('f-threshold').value) : null
+            };
+            if (document.getElementById('n-none').checked) { body.notifyEmail = body.notifyAppPush = body.notifySiteMessage = false; }
+            return body;
+        }
+        function toInt(v) { const n = parseInt(v); return isNaN(n) ? null : n; }
+        function toFloat(v) { const n = parseFloat(v); return isNaN(n) ? null : n; }
+
+        function fillForm(r) {
+            document.getElementById('f-name').value = r.name || '';
+            (r.status === 'Enabled' ? document.getElementById('f-st-enabled') : document.getElementById('f-st-disabled')).checked = true;
+            (document.getElementById({ Schedule: 'tr-schedule', RegistrationCompleted: 'tr-register', FirstPurchaseCompleted: 'tr-first', SpendingThreshold: 'tr-spend', BirthdayToday: 'tr-bday', CustomEvent: 'tr-custom' }[r.triggerType || 'Schedule'])).checked = true;
+            document.getElementById('f-customKey').value = r.customEventKey || '';
+            document.getElementById('f-cond').value = r.conditionsJson || '';
+            (document.getElementById({ Fixed: 'pt-fixed', Random: 'pt-rand', Percentage: 'pt-pct' }[r.pointType || 'Fixed'])).checked = true; onPointTypeChange();
+            document.getElementById('f-fixed').value = r.fixedAmount ?? '';
+            document.getElementById('f-rmin').value = r.randomMin ?? '';
+            document.getElementById('f-rmax').value = r.randomMax ?? '';
+            document.getElementById('f-pct').value = r.percentage ?? '';
+            document.getElementById('f-pum').value = r.perUserMonthlyLimit ?? '';
+            document.getElementById('f-budget').value = r.totalBudget ?? '';
+            (document.getElementById({ Days: 'exp-days', FixedDate: 'exp-fixed', ThisWeekSunday: 'exp-week' }[r.expiryMode || 'Days'])).checked = true; onExpiryChange();
+            document.getElementById('f-expDays').value = r.expiryDays ?? '';
+            if (r.expiryDate) { const d = new Date(r.expiryDate); document.getElementById('f-expDate').value = d.toISOString().substring(0, 10); }
+            document.getElementById('f-target').value = r.target || 'AllMembers';
+            document.getElementById('f-cron').value = r.scheduleCron || '';
+            // 解析既有 Cron 並同步到「排程設定」欄位，避免時間跳回 9 點
+            if (r.scheduleCron) { try { applyCronToUi(r.scheduleCron); } catch { /* ignore */ } }
+            document.getElementById('n-email').checked = !!r.notifyEmail;
+            document.getElementById('n-app').checked = !!r.notifyAppPush;
+            document.getElementById('n-site').checked = !!r.notifySiteMessage;
+            // 若皆未勾，預設為「不通知」
+            document.getElementById('n-none').checked = !(!!r.notifyEmail || !!r.notifyAppPush || !!r.notifySiteMessage);
+            document.getElementById('f-threshold').value = r.spendingThresholdAmount ?? '';
+            // 活動期間
+            if (r.startAt) { const d = new Date(r.startAt); document.getElementById('f-startAt').value = toLocalDatetimeValue(d); }
+            if (r.endAt) { const d = new Date(r.endAt); document.getElementById('f-endAt').value = toLocalDatetimeValue(d); }
+            onTriggerChange();
+            // 依目前欄位重建 Cron，確保顯示一致
+            rebuildCron();
+        }
+        // 將 Cron 字串套用到 UI 欄位（僅支援基本 5 欄：m h dom mon dow）
+        function applyCronToUi(cron) {
+            const parts = String(cron).trim().split(/\s+/);
+            if (parts.length < 5) return;
+            const [mmRaw, hhRaw, domRaw, monRaw, dowRaw] = parts;
+            const mm = parseInt(mmRaw);
+            const hh = parseInt(hhRaw);
+            // 設定時分
+            if (!isNaN(mm)) document.getElementById('sch-mm').value = clamp(mm, 0, 59);
+            if (!isNaN(hh)) document.getElementById('sch-hh').value = clamp(hh, 0, 23);
+            // 判斷週期：每日、每週、每月
+            if ((domRaw === '*' || domRaw === '*/1') && (dowRaw === '*' || dowRaw === '*/1')) {
+                document.getElementById('sch-period').value = 'daily';
+            } else if (domRaw === '*' && dowRaw !== '*' && dowRaw !== '?') {
+                document.getElementById('sch-period').value = 'weekly';
+                document.getElementById('sch-week').classList.remove('d-none');
+                document.getElementById('sch-dow').value = String(dowRaw);
+            } else if (domRaw !== '*' && !isNaN(parseInt(domRaw))) {
+                document.getElementById('sch-period').value = 'monthly';
+                document.getElementById('sch-month').classList.remove('d-none');
+                document.getElementById('sch-dom').value = String(clamp(parseInt(domRaw), 1, 31));
+            } else {
+                // 無法判斷則維持 daily
+                document.getElementById('sch-period').value = 'daily';
+            }
+        }
+        function clearForm() {
+            editingId = null;
+            document.querySelector('#ruleEditor form')?.reset;
+            document.getElementById('f-name').value = '';
+            document.getElementById('f-st-disabled').checked = true;
+            document.getElementById('tr-schedule').checked = true;
+            document.getElementById('pt-fixed').checked = true;
+            document.getElementById('f-fixed').value = '10';
+            document.getElementById('f-rmin').value = '';
+            document.getElementById('f-rmax').value = '';
+            document.getElementById('f-pct').value = '';
+            document.getElementById('f-pum').value = '';
+            document.getElementById('f-budget').value = '';
+            document.getElementById('exp-days').checked = true;
+            document.getElementById('f-expDays').value = '30';
+            document.getElementById('f-expDate').value = '';
+            document.getElementById('f-cond').value = '';
+            document.getElementById('f-customKey').value = '';
+            document.getElementById('f-cron').value = '';
+            document.getElementById('n-none').checked = true; // 預設不通知
+            document.getElementById('n-email').checked = false;
+            document.getElementById('n-app').checked = false;
+            document.getElementById('n-site').checked = false;
+            document.getElementById('f-threshold').value = '';
+            // 預設開始時間 00:00、結束時間 12:00（今天）
+            const now = new Date();
+            const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+            const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0);
+            document.getElementById('f-startAt').value = toLocalDatetimeValue(start);
+            document.getElementById('f-endAt').value = toLocalDatetimeValue(end);
+            onPointTypeChange();
+            onExpiryChange();
+            onTriggerChange();
+            rebuildCron();
+        }
+
+        function toLocalDatetimeValue(date) {
+            const pad = (n) => n.toString().padStart(2, '0');
+            const yyyy = date.getFullYear();
+            const MM = pad(date.getMonth() + 1);
+            const dd = pad(date.getDate());
+            const hh = pad(date.getHours());
+            const mm = pad(date.getMinutes());
+            return `${yyyy}-${MM}-${dd}T${hh}:${mm}`;
+        }
+
+        function notify(msg, type) {
+            $.notify({ message: msg }, { type: type, delay: 1500, placement: { from: 'top', align: 'right' } });
+        }
+
+        document.getElementById('btn-refresh').addEventListener('click', loadRules);
+        loadRules(); onPointTypeChange(); onExpiryChange(); onTriggerChange(); rebuildCron();
+    </script>
+}

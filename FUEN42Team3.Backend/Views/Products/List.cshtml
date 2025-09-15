@@ -1,0 +1,349 @@
+﻿@{
+    ViewData["Title"] = "商品列表 | GhostToys魔型仔";
+    Layout = "_Layout";
+}
+
+<div class="page-inner">
+    <div class="page-header">
+        <h4 class="page-title">商品列表</h4>
+    </div>
+
+    <div class="page-category">
+        <div class="col-md-12">
+
+            <!-- 工具列 -->
+            <form id="productQueryForm" class="mb-3 d-flex flex-wrap gap-2 align-items-center">
+                <label class="me-2">顯示：</label>
+                <select id="pageSize" class="form-select form-select-sm" style="width:auto;">
+                    <option value="10" selected>10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                </select>
+
+                <input id="keyword" type="text" class="form-control" placeholder="搜尋名稱 / 品牌 / 分類" style="width:220px;">
+                <button type="submit" id="btnSearch" class="btn btn-primary">搜尋</button>
+                <a href="@Url.Action("List", "Products")" class="btn btn-secondary">清除</a>
+
+                <div class="ms-auto">
+                    <button type="button" id="btnAdd" class="btn btn-success">＋ 新增商品</button>
+                </div>
+            </form>
+
+            <!-- 表格 -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table id="productTable" class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>商品ID</th>
+                                    <th>商品名稱</th>
+                                    <th>分類</th>
+                                    <th>品牌</th>
+                                    <th>狀態</th>
+                                    <th>價格（原價 / 特價）</th>
+                                    <th>上架</th>
+                                    <th style="width:100px;">預計發售日</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody><!-- JS 動態產生 --></tbody>
+                        </table>
+                    </div>
+
+                    <div id="productPagination" class="d-flex justify-content-center"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- 商品 Modal -->
+<div class="modal fade" id="productModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <form id="productForm" class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title">新增/編輯商品</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body row g-3 px-3">
+                <input type="hidden" name="EditIndex" />
+
+                <div class="col-md-4">
+                    <label>商品ID</label>
+                    <input type="text" class="form-control" name="ProductID" readonly />
+                </div>
+
+                <div class="col-md-4">
+                    <label>商品名稱</label>
+                    <input type="text" class="form-control" name="ProductName" required />
+                </div>
+
+                <div class="col-md-4">
+                    <label>SKU</label>
+                    <input type="text" class="form-control" name="SKU" />
+                </div>
+
+                <!-- 3 個下拉用「ID」當 value，選項用 AJAX 載入 -->
+                <div class="col-md-4">
+                    <label>分類</label>
+                    <select class="form-select" name="CategoryId" id="CategoryId"></select>
+                </div>
+                <div class="col-md-4">
+                    <label>品牌</label>
+                    <select class="form-select" name="BrandId" id="BrandId"></select>
+                </div>
+                <div class="col-md-4">
+                    <label>狀態</label>
+                    <select class="form-select" name="StatusId" id="StatusId"></select>
+                </div>
+
+                <div class="col-md-4">
+                    <label>原價 (BasePrice)</label>
+                    <input type="number" step="1" min="0" class="form-control" name="BasePrice" />
+                </div>
+
+                <div class="col-md-4">
+                    <label>特價 (SalePrice)<span class="text-muted ms-1">(選填)</span></label>
+                    <input type="number" step="1" min="0" class="form-control" name="SalePrice" />
+                    <div class="form-text">留空或 ≥ 原價視為無特價。</div>
+                </div>
+
+                <div class="col-md-4">
+                    <label>是否上架</label>
+                    <select class="form-select" name="IsActive">
+                        <option value="1">是</option>
+                        <option value="0">否</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label>庫存數量</label>
+                    <input type="number" min="0" class="form-control" name="Quantity" required />
+                </div>
+
+                <div class="col-md-4">
+                    <label>預計發售日</label>
+                    <input type="date" class="form-control" name="EstimatedReleaseDate" />
+                </div>
+
+                <!-- ★ 新增：特惠起迄時間（對應資料表 Products.SpecialPriceStartDate / SpecialPriceEndDate） -->
+                <div class="col-md-4">
+                    <label>特惠開始時間（台灣時間）</label>
+                    <input type="datetime-local" class="form-control taiwan-time" name="SpecialPriceStartDate" />
+                    <div class="form-text">到達此時間後才開始顯示特價。</div>
+                </div>
+                <div class="col-md-4">
+                    <label>特惠結束時間（台灣時間）</label>
+                    <input type="datetime-local" class="form-control taiwan-time" name="SpecialPriceEndDate" />
+                    <div class="form-text">超過此時間後自動恢復原價。</div>
+                </div>
+
+                <!-- 你說不見的欄位都補回來 -->
+                <div class="col-md-4">
+                    <label>最小訂購量</label>
+                    <input type="number" class="form-control" name="MinimumOrderQuantity" />
+                </div>
+                <div class="col-md-4">
+                    <label>最大訂購量</label>
+                    <input type="number" class="form-control" name="MaximumOrderQuantity" />
+                </div>
+
+                <div class="col-md-4">
+                    <label>重量 (kg)</label>
+                    <input type="number" step="0.01" class="form-control" name="Weight" />
+                </div>
+                <div class="col-md-4">
+                    <label>長 (cm)</label>
+                    <input type="number" step="0.1" class="form-control" name="Length" />
+                </div>
+                <div class="col-md-4">
+                    <label>寬 (cm)</label>
+                    <input type="number" step="0.1" class="form-control" name="Width" />
+                </div>
+                <div class="col-md-4">
+                    <label>高 (cm)</label>
+                    <input type="number" step="0.1" class="form-control" name="Height" />
+                </div>
+
+                <div class="col-md-12">
+                    <label>商品詳細介紹</label>
+                    <textarea class="form-control" name="Description" rows="4"></textarea>
+                </div>
+
+                <div class="col-md-12">
+                    <label>商品圖片</label>
+                    <input type="file" class="form-control" name="ProductImages" accept="image/*" multiple />
+                    <small class="form-text text-muted">選擇檔案後會在下方顯示預覽</small>
+                    <div id="imagePreviewList" class="d-flex flex-wrap gap-2 mt-2"></div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" id="btnTest" class="btn btn-warning me-auto">測試</button>
+                <button type="submit" class="btn btn-success">儲存</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/product-image-uploader.js" asp-append-version="true"></script>
+    <script src="~/js/product.api.js" asp-append-version="true"></script>
+    <script src="~/js/product-form-handler.js" asp-append-version="true"></script>
+    <script src="~/js/product-test-button.js" asp-append-version="true"></script>
+    <script>
+        // 處理台灣時區的時間顯示和轉換
+        document.addEventListener('DOMContentLoaded', function() {
+            // 設定當Modal開啟時自動設定目前時間為台灣時間
+            const productModal = document.getElementById('productModal');
+            if (productModal) {
+                productModal.addEventListener('show.bs.modal', function() {
+                    // 檢查是否為新增商品
+                    const productIdField = document.querySelector('input[name="ProductID"]');
+                    const isNewProduct = !productIdField.value;
+                    
+                    // 如果是新增商品，預設值設為目前台灣時間
+                    if (isNewProduct) {
+                        const now = new Date();
+                        // 獲取台灣時間 (UTC+8)
+                        const taiwanNow = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+                        
+                        // 格式化為 yyyy-MM-ddThh:mm 格式
+                        const year = taiwanNow.getUTCFullYear();
+                        const month = String(taiwanNow.getUTCMonth() + 1).padStart(2, '0');
+                        const day = String(taiwanNow.getUTCDate()).padStart(2, '0');
+                        const hours = String(taiwanNow.getUTCHours()).padStart(2, '0');
+                        const minutes = String(taiwanNow.getUTCMinutes()).padStart(2, '0');
+                        
+                        const formattedNow = `${year}-${month}-${day}T${hours}:${minutes}`;
+                    }
+                });
+            }
+        });
+    </script>
+    <script>
+        // 後端實際路徑
+        const META_API = {
+          categories: "/api/Categories",
+          brands: "/api/Brands",
+          statuses: "/api/ProductStatuses"   // ← 等一下會把後端路由也改成這個
+        };
+
+        async function loadOptions(url, selectEl, placeholder) {
+          try {
+            const res = await fetch(url, { headers: { "Accept": "application/json" } });
+            if (!res.ok) throw new Error(res.status);
+            const list = await res.json();
+            const items = list.map(x => ({
+              id: x.id ?? x.Id ?? x.value,
+              name: x.name ?? x.Name ?? x.text
+            }));
+
+            selectEl.innerHTML = "";
+            const opt0 = document.createElement("option");
+            opt0.value = "";
+            opt0.textContent = placeholder || "請選擇";
+            selectEl.appendChild(opt0);
+
+            for (const it of items) {
+              const opt = document.createElement("option");
+              opt.value = it.id;
+              opt.textContent = it.name;
+              selectEl.appendChild(opt);
+            }
+
+            // 給需要用「名稱→ID」對應時使用
+            window._metaMaps = window._metaMaps || {};
+            if (selectEl.id === "CategoryId") window._metaMaps.categories = items;
+            if (selectEl.id === "BrandId") window._metaMaps.brands = items;
+            if (selectEl.id === "StatusId") window._metaMaps.statuses = items;
+
+          } catch (err) {
+            console.error("載入選項失敗", url, err);
+            selectEl.innerHTML = `<option value="">載入失敗</option>`;
+          }
+        }
+
+        document.addEventListener("DOMContentLoaded", async () => {
+          await Promise.all([
+            loadOptions(META_API.categories, document.getElementById("CategoryId"), "請選擇分類"),
+            loadOptions(META_API.brands, document.getElementById("BrandId"), "請選擇品牌"),
+            loadOptions(META_API.statuses, document.getElementById("StatusId"), "請選擇狀態")
+          ]);
+        });
+
+        // 若只有名稱，要轉成對應 ID 可用這個
+        window.tryFillIdByName = function (selectEl, name, group) {
+          if (!name || !window._metaMaps || !window._metaMaps[group]) return;
+          const found = window._metaMaps[group].find(x => x.name === name);
+          if (found) selectEl.value = found.id;
+        };
+
+        // ===== 特惠期間工具 =====
+        // 給前台或列表用：當「目前時間」落在起迄(含)且 SalePrice < BasePrice 才視為生效
+        window.isInSpecialPricePeriod = function (p, now = new Date()) {
+          if (!p) return false;
+          const base = Number(p.BasePrice ?? p.basePrice ?? 0);
+          const sale = Number(p.SalePrice ?? p.SpecialPrice ?? p.salePrice ?? p.specialPrice ?? NaN);
+          if (!(sale >= 0) || sale >= base) return false;
+
+          const start = p.SpecialPriceStartDate ?? p.specialPriceStartDate ?? p.SaleStart ?? p.saleStart;
+          const end   = p.SpecialPriceEndDate   ?? p.specialPriceEndDate   ?? p.SaleEnd   ?? p.saleEnd;
+
+          const startDt = start ? new Date(start) : null;
+          const endDt   = end   ? new Date(end)   : null;
+
+          if (startDt && now < startDt) return false;
+          if (endDt && now > endDt) return false;
+          return true;
+        };
+
+        // 表單送出前的前端檢核：沒特價就清空時間；有時間但沒特價就警告
+        (function hookFormValidation() {
+          const form = document.getElementById("productForm");
+          if (!form) return;
+
+          form.addEventListener("submit", (e) => {
+            const base = Number(form.elements["BasePrice"]?.value || 0);
+            const sale = form.elements["SalePrice"]?.value;
+            const saleNum = sale === "" ? NaN : Number(sale);
+
+            const startEl = form.elements["SpecialPriceStartDate"];
+            const endEl   = form.elements["SpecialPriceEndDate"];
+
+            // 1) 沒有有效特價（空或 >= 原價）→ 清空起迄
+            if (!(saleNum >= 0) || saleNum >= base) {
+              if (startEl) startEl.value = "";
+              if (endEl) endEl.value = "";
+              return; // 放行
+            }
+
+            // 2) 有填特價，若有填起迄就再做順序檢查
+            const s = startEl?.value ? new Date(startEl.value) : null;
+            const t = endEl?.value ? new Date(endEl.value) : null;
+            if (s && t && s > t) {
+              e.preventDefault();
+              alert("特惠開始時間不可晚於特惠結束時間。");
+              return;
+            }
+          });
+
+          // 若使用者輸入了起迄但沒填特價，提示一下
+          const startEl = form.elements["SpecialPriceStartDate"];
+          const endEl   = form.elements["SpecialPriceEndDate"];
+          function hintIfNoSale() {
+            const sale = form.elements["SalePrice"]?.value;
+            if ((startEl?.value || endEl?.value) && (sale === "")) {
+              // 不阻擋送出，只提醒
+              console.warn("已輸入特惠起迄但未填特價，將不會生效。");
+            }
+          }
+          startEl?.addEventListener("change", hintIfNoSale);
+          endEl?.addEventListener("change", hintIfNoSale);
+        })();
+    </script>
+}

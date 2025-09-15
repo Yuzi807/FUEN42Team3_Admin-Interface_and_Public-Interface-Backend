@@ -1,0 +1,6 @@
+@FUEN42Team3.Frontend.WebApi_HostAddress = http://localhost:5217
+
+GET {{FUEN42Team3.Frontend.WebApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

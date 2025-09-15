@@ -1,0 +1,504 @@
+﻿@{
+    ViewData["Title"] = "會員管理 | GhostToys魔型仔";
+    Layout = "_Layout";
+
+}
+<div class="page-inner">
+	<!-- 編輯會員 Modal -->
+	<div class="modal fade" id="memberModal" tabindex="-1" aria-labelledby="memberModalLabel"
+		 aria-hidden="true">
+		<div class="modal-dialog">
+			<form id="memberForm" class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title" id="memberModalLabel">編輯會員資料</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal"
+							aria-label="Close"></button>
+				</div>
+				<div class="modal-body">
+					<input type="hidden" name="EditIndex" />
+					<div class="mb-3">
+						<label class="form-label">帳號</label>
+						<input type="text" name="Username" class="form-control" required />
+					</div>
+					<div class="mb-3">
+						<label class="form-label">暱稱</label>
+						<input type="text" name="Nickname" class="form-control" required />
+					</div>
+					<div class="mb-3">
+						<label class="form-label">Email</label>
+						<input type="email" name="Email" class="form-control" required />
+					</div>
+					<div class="mb-3">
+						<label class="form-label">手機號碼</label>
+						<input type="text" name="Phone" class="form-control" />
+					</div>
+					<div class="mb-3">
+						<label class="form-label">住址</label>
+						<input type="text" name="Address" class="form-control" />
+					</div>
+					<div class="mb-3">
+						<label class="form-label">生日</label>
+						<input type="date" name="BirthDate" class="form-control" />
+					</div>
+					<div class="mb-3">
+						<label class="form-label">啟用狀態</label>
+						<select name="IsActive" class="form-select">
+							<option value="1">啟用</option>
+							<option value="0">停用</option>
+						</select>
+					</div>
+					<div class="mb-3">
+						<label class="form-label">驗證狀態</label>
+						<select name="IsVerified" class="form-select">
+							<option value="1">已驗證</option>
+							<option value="0">未驗證</option>
+						</select>
+					</div>
+					<div class="mb-3">
+						<label class="form-label">禁言至</label>
+						<input type="datetime-local" name="MutedUntil" class="form-control" />
+					</div>
+					<div class="mb-3">
+						<label class="form-label">封鎖至</label>
+						<input type="datetime-local" name="BannedUntil" class="form-control" />
+					</div>
+					<div class="mb-3">
+						<label class="form-label">註冊日期</label>
+						<input type="datetime-local" name="CreatedTime" class="form-control" />
+					</div>
+					<div class="mb-3">
+						<label class="form-label">停用原因</label>
+						<input type="text" name="DeactivatedReason" class="form-control" />
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="submit" class="btn btn-primary">儲存</button>
+					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+				</div>
+			</form>
+		</div>
+	</div>
+
+	<!-- 會員資料表格開始 -->
+	<div class="row mt-5">
+		<div class="col-md-12">
+			<div class="card-body">
+				<div class="table-responsive">
+					<table id="memberTable" class="table table-bordered table-hover" style="width:100%">
+						<thead>
+							<tr>
+								<th>帳號</th>
+								<th>暱稱</th>
+								<th>Email</th>
+								<th>手機號碼</th>
+								<th>住址</th>
+								<th>生日</th>
+								<th>啟用狀態</th>
+								<th>驗證狀態</th>
+								<th>禁言至</th>
+								<th>封鎖至</th>
+								<th>註冊日期</th>
+								<th>停用原因</th>
+								<th>操作</th>
+							</tr>
+						</thead>
+						<tbody></tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- 會員資料表格結束 -->
+</div>
+@section Scripts {
+    <!-- 網頁script控制 -->
+    <script>
+                // ...existing code...
+        let members = [
+            {
+                Username: "user001",
+                Nickname: "小明",
+                Email: "user001@example.com",
+                Phone: "0912345678",
+                Address: "台北市信義區",
+                BirthDate: "1990-01-01",
+                IsActive: true,
+                IsVerified: true,
+                MutedUntil: "",
+                BannedUntil: "",
+                CreatedTime: "2024-07-01T10:00",
+                DeactivatedReason: ""
+            },
+            {
+                Username: "user002",
+                Nickname: "小美",
+                Email: "user002@example.com",
+                Phone: "0987654321",
+                Address: "新北市板橋區",
+                BirthDate: "1995-05-05",
+                IsActive: false,
+                IsVerified: false,
+                MutedUntil: "2025-07-18T12:00",
+                BannedUntil: "",
+                CreatedTime: "2024-07-10T09:30",
+                DeactivatedReason: "違規操作"
+            },
+            {
+                Username: "user003",
+                Nickname: "阿強",
+                Email: "user003@example.com",
+                Phone: "0922333444",
+                Address: "桃園市中壢區",
+                BirthDate: "1988-03-12",
+                IsActive: true,
+                IsVerified: false,
+                MutedUntil: "",
+                BannedUntil: "",
+                CreatedTime: "2024-07-11T08:20",
+                DeactivatedReason: ""
+            },
+            {
+                Username: "user004",
+                Nickname: "小華",
+                Email: "user004@example.com",
+                Phone: "0933444555",
+                Address: "台中市西屯區",
+                BirthDate: "1992-07-21",
+                IsActive: true,
+                IsVerified: true,
+                MutedUntil: "",
+                BannedUntil: "",
+                CreatedTime: "2024-07-12T14:00",
+                DeactivatedReason: ""
+            },
+            {
+                Username: "user005",
+                Nickname: "小美2",
+                Email: "user005@example.com",
+                Phone: "0955666777",
+                Address: "高雄市左營區",
+                BirthDate: "1997-09-09",
+                IsActive: false,
+                IsVerified: true,
+                MutedUntil: "",
+                BannedUntil: "2025-08-01T18:00",
+                CreatedTime: "2024-07-13T16:45",
+                DeactivatedReason: "檢舉"
+            },
+            {
+                Username: "user006",
+                Nickname: "阿志",
+                Email: "user006@example.com",
+                Phone: "0966888999",
+                Address: "新竹市東區",
+                BirthDate: "1985-11-30",
+                IsActive: true,
+                IsVerified: false,
+                MutedUntil: "",
+                BannedUntil: "",
+                CreatedTime: "2024-07-14T11:10",
+                DeactivatedReason: ""
+            },
+            {
+                Username: "user007",
+                Nickname: "小芳",
+                Email: "user007@example.com",
+                Phone: "0977999000",
+                Address: "台南市安平區",
+                BirthDate: "1993-04-15",
+                IsActive: true,
+                IsVerified: true,
+                MutedUntil: "",
+                BannedUntil: "",
+                CreatedTime: "2024-07-15T13:30",
+                DeactivatedReason: ""
+            },
+            {
+                Username: "user008",
+                Nickname: "阿豪",
+                Email: "user008@example.com",
+                Phone: "0988001122",
+                Address: "彰化縣彰化市",
+                BirthDate: "1991-06-18",
+                IsActive: false,
+                IsVerified: false,
+                MutedUntil: "",
+                BannedUntil: "",
+                CreatedTime: "2024-07-16T09:00",
+                DeactivatedReason: "違規留言"
+            },
+            {
+                Username: "user009",
+                Nickname: "小玲",
+                Email: "user009@example.com",
+                Phone: "0999111222",
+                Address: "屏東縣屏東市",
+                BirthDate: "1996-12-25",
+                IsActive: true,
+                IsVerified: true,
+                MutedUntil: "",
+                BannedUntil: "",
+                CreatedTime: "2024-07-17T17:20",
+                DeactivatedReason: ""
+            },
+            {
+                Username: "user010",
+                Nickname: "阿傑",
+                Email: "user010@example.com",
+                Phone: "0911222333",
+                Address: "基隆市仁愛區",
+                BirthDate: "1989-02-14",
+                IsActive: true,
+                IsVerified: false,
+                MutedUntil: "",
+                BannedUntil: "",
+                CreatedTime: "2024-07-18T10:10",
+                DeactivatedReason: ""
+            },
+            {
+                Username: "user011",
+                Nickname: "小君",
+                Email: "user011@example.com",
+                Phone: "0922444555",
+                Address: "宜蘭縣宜蘭市",
+                BirthDate: "1994-08-08",
+                IsActive: false,
+                IsVerified: true,
+                MutedUntil: "",
+                BannedUntil: "",
+                CreatedTime: "2024-07-19T12:00",
+                DeactivatedReason: "帳號異常"
+            },
+            {
+                Username: "user012",
+                Nickname: "阿凱",
+                Email: "user012@example.com",
+                Phone: "0933555666",
+                Address: "花蓮縣花蓮市",
+                BirthDate: "1990-05-05",
+                IsActive: true,
+                IsVerified: true,
+                MutedUntil: "",
+                BannedUntil: "",
+                CreatedTime: "2024-07-20T15:30",
+                DeactivatedReason: ""
+            },
+            {
+                Username: "user013",
+                Nickname: "小安",
+                Email: "user013@example.com",
+                Phone: "0944666777",
+                Address: "台東縣台東市",
+                BirthDate: "1998-10-10",
+                IsActive: true,
+                IsVerified: false,
+                MutedUntil: "",
+                BannedUntil: "",
+                CreatedTime: "2024-07-21T18:00",
+                DeactivatedReason: ""
+            },
+            {
+                Username: "user014",
+                Nickname: "阿文",
+                Email: "user014@example.com",
+                Phone: "0955777888",
+                Address: "南投縣南投市",
+                BirthDate: "1987-09-09",
+                IsActive: false,
+                IsVerified: true,
+                MutedUntil: "",
+                BannedUntil: "",
+                CreatedTime: "2024-07-22T20:10",
+                DeactivatedReason: "停權"
+            },
+            {
+                Username: "user015",
+                Nickname: "小志",
+                Email: "user015@example.com",
+                Phone: "0966888999",
+                Address: "嘉義市東區",
+                BirthDate: "1992-03-03",
+                IsActive: true,
+                IsVerified: true,
+                MutedUntil: "",
+                BannedUntil: "",
+                CreatedTime: "2024-07-23T09:45",
+                DeactivatedReason: ""
+            },
+            {
+                Username: "user016",
+                Nickname: "阿美",
+                Email: "user016@example.com",
+                Phone: "0977999000",
+                Address: "新竹縣竹北市",
+                BirthDate: "1995-07-07",
+                IsActive: true,
+                IsVerified: false,
+                MutedUntil: "",
+                BannedUntil: "",
+                CreatedTime: "2024-07-24T11:20",
+                DeactivatedReason: ""
+            },
+            {
+                Username: "user017",
+                Nickname: "小偉",
+                Email: "user017@example.com",
+                Phone: "0988001122",
+                Address: "雲林縣斗六市",
+                BirthDate: "1993-06-06",
+                IsActive: false,
+                IsVerified: true,
+                MutedUntil: "",
+                BannedUntil: "",
+                CreatedTime: "2024-07-25T13:00",
+                DeactivatedReason: "違規"
+            },
+            {
+                Username: "user018",
+                Nickname: "阿龍",
+                Email: "user018@example.com",
+                Phone: "0999111222",
+                Address: "台北市大安區",
+                BirthDate: "1986-01-01",
+                IsActive: true,
+                IsVerified: true,
+                MutedUntil: "",
+                BannedUntil: "",
+                CreatedTime: "2024-07-26T15:10",
+                DeactivatedReason: ""
+            },
+            {
+                Username: "user019",
+                Nickname: "小婷",
+                Email: "user019@example.com",
+                Phone: "0911222333",
+                Address: "新北市新店區",
+                BirthDate: "1997-02-02",
+                IsActive: true,
+                IsVerified: false,
+                MutedUntil: "",
+                BannedUntil: "",
+                CreatedTime: "2024-07-27T17:30",
+                DeactivatedReason: ""
+            },
+            {
+                Username: "user020",
+                Nickname: "阿豪2",
+                Email: "user020@example.com",
+                Phone: "0922444555",
+                Address: "台中市南區",
+                BirthDate: "1991-05-05",
+                IsActive: false,
+                IsVerified: true,
+                MutedUntil: "",
+                BannedUntil: "",
+                CreatedTime: "2024-07-28T19:00",
+                DeactivatedReason: "檢舉"
+            },
+            {
+                Username: "user021",
+                Nickname: "小芸",
+                Email: "user021@example.com",
+                Phone: "0933555666",
+                Address: "高雄市鼓山區",
+                BirthDate: "1994-11-11",
+                IsActive: true,
+                IsVerified: true,
+                MutedUntil: "",
+                BannedUntil: "",
+                CreatedTime: "2024-07-29T21:10",
+                DeactivatedReason: ""
+            }
+        ];
+        //
+
+                let memberTable; // DataTable 實例
+
+                $(function () {
+                    // 初始化 DataTables
+                    memberTable = $('#memberTable').DataTable({
+                        "pageLength": 10,
+                        "ordering": true,
+                        "lengthChange": true,
+                        "language": {
+                            "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/zh-HANT.json"
+                        },
+                        "data": members,
+                        "columns": [
+                            { data: "Username" },
+                            { data: "Nickname" },
+                            { data: "Email" },
+                            { data: "Phone" },
+                            { data: "Address" },
+                            { data: "BirthDate" },
+                            {
+                                data: "IsActive",
+                                render: function (data) {
+                                    return `<span class="badge ${data ? "badge-success" : "badge-danger"}">${data ? "啟用" : "停用"}</span>`;
+                                }
+                            },
+                            {
+                                data: "IsVerified",
+                                render: function (data) {
+                                    return `<span class="badge ${data ? "badge-success" : "badge-danger"}">${data ? "已驗證" : "未驗證"}</span>`;
+                                }
+                            },
+                            { data: "MutedUntil", defaultContent: "" },
+                            { data: "BannedUntil", defaultContent: "" },
+                            {
+                                data: "CreatedTime",
+                                render: function (data) {
+                                    return data ? data.replace("T", " ") : "";
+                                }
+                            },
+                            { data: "DeactivatedReason", defaultContent: "" },
+                            {
+                                data: null,
+                                orderable: false,
+                                render: function (data, type, row, meta) {
+                                    return `<button class="btn btn-sm btn-info btn-edit" data-index="${meta.row}">編輯</button>`;
+                                }
+                            }
+                        ]
+                    });
+
+                    // 編輯按鈕事件（委派）
+                    $("#memberTable tbody").on("click", ".btn-edit", function () {
+                        const i = $(this).data("index");
+                        const m = members[i];
+                        const form = $("#memberForm")[0];
+                        form.EditIndex.value = i;
+                        form.Username.value = m.Username;
+                        form.Nickname.value = m.Nickname;
+                        form.Email.value = m.Email;
+                        form.Phone.value = m.Phone;
+                        form.Address.value = m.Address;
+                        form.BirthDate.value = m.BirthDate;
+                        form.IsActive.value = m.IsActive ? "1" : "0";
+                        form.IsVerified.value = m.IsVerified ? "1" : "0";
+                        form.MutedUntil.value = m.MutedUntil;
+                        form.BannedUntil.value = m.BannedUntil;
+                        form.CreatedTime.value = m.CreatedTime;
+                        form.DeactivatedReason.value = m.DeactivatedReason;
+                        new bootstrap.Modal("#memberModal").show();
+                    });
+
+                    // 表單送出
+                    $("#memberForm").submit(function (e) {
+                        e.preventDefault();
+                        const formData = $(this).serializeArray();
+                        const member = {};
+                        let editIndex = null;
+                        formData.forEach(item => {
+                            if (item.name === "EditIndex") editIndex = item.value;
+                            else if (item.name === "IsActive") member.IsActive = item.value === "1";
+                            else if (item.name === "IsVerified") member.IsVerified = item.value === "1";
+                            else member[item.name] = item.value;
+                        });
+                        if (editIndex !== "") members[editIndex] = member;
+                        memberTable.clear().rows.add(members).draw();
+                        bootstrap.Modal.getInstance(document.querySelector("#memberModal")).hide();
+                    });
+                });
+    </script>
+}

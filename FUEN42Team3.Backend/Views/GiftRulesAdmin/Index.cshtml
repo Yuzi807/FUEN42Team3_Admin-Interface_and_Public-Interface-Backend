@@ -1,0 +1,225 @@
+@{
+    ViewData["Title"] = "贈品規則管理";
+}
+<div class="container mt-4" id="app">
+    <h2 class="mb-3">贈品規則管理</h2>
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="d-flex gap-2 align-items-end">
+                <div>
+                    <label class="form-label">規則名稱</label>
+                    <input class="form-control" v-model="form.name" placeholder="例如：滿額贈 小禮物">
+                </div>
+                <div>
+                    <label class="form-label">條件類型</label>
+                    <select class="form-select" v-model="form.conditionType">
+                        <option value="Amount">金額滿</option>
+                        <option value="Quantity">件數滿</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">門檻值</label>
+                    <input type="number" class="form-control" v-model.number="form.conditionValue" min="0">
+                </div>
+                <div>
+                    <label class="form-label">開始</label>
+                    <input type="datetime-local" class="form-control" v-model="form.startDate">
+                </div>
+                <div>
+                    <label class="form-label">結束</label>
+                    <input type="datetime-local" class="form-control" v-model="form.endDate">
+                </div>
+                <div class="ms-auto">
+                    <button class="btn btn-primary" v-on:click="saveRule">儲存規則</button>
+                    <button class="btn btn-secondary ms-2" v-on:click="resetForm">清空</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-5">
+            <div class="card">
+                <div class="card-header">規則清單</div>
+                <div class="card-body p-0">
+                    <table class="table table-striped mb-0">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>名稱</th>
+                                <th>條件</th>
+                                <th>期間</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="r in list" :key="r.id">
+                                <td>{{ r.id }}</td>
+                                <td>{{ r.name }}</td>
+                                <td>
+                                    <span class="badge bg-info me-1">{{ r.conditionType }}</span>
+                                    <span>{{ r.conditionValue }}</span>
+                                </td>
+                                <td>
+                                    <div style="font-size:12px">
+                                        <div v-if="r.startDate">{{ formatDate(r.startDate) }}</div>
+                                        <div v-if="r.endDate">~ {{ formatDate(r.endDate) }}</div>
+                                    </div>
+                                </td>
+                                <td class="text-end">
+                                    <button class="btn btn-sm btn-outline-primary"
+                                        v-on:click="editRule(r.id)">編輯</button>
+                                    <button class="btn btn-sm btn-outline-danger ms-1"
+                                        v-on:click="removeRule(r.id)">刪除</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-7">
+            <div class="card">
+                <div class="card-header">贈品品項</div>
+                <div class="card-body">
+                    <div class="d-flex align-items-end gap-2 mb-3">
+                        <div class="flex-grow-1">
+                            <label class="form-label">選擇贈品</label>
+                            <select class="form-select" v-model.number="newItem.giftId">
+                                <option :value="0">請選擇</option>
+                                <option v-for="g in gifts" :key="g.id" :value="g.id">{{ g.name }}</option>
+                            </select>
+                        </div>
+                        <div style="width:120px">
+                            <label class="form-label">數量</label>
+                            <input type="number" class="form-control" v-model.number="newItem.quantity" min="1">
+                        </div>
+                        <div>
+                            <button class="btn btn-success" :disabled="!currentId || newItem.giftId<=0"
+                                v-on:click="addItem">新增</button>
+                        </div>
+                    </div>
+                    <div class="row" v-if="items.length">
+                        <div class="col-md-6 mb-3" v-for="it in items" :key="it.id">
+                            <div class="card h-100">
+                                <div class="row g-0 h-100">
+                                    <div class="col-auto text-center p-2">
+                                        <img :src="imageSrc(it.giftId)" class="img-thumbnail d-block mx-auto"
+                                            style="width:96px;height:96px;object-fit:cover"
+                                            onerror="this.src='/img/no-image.png'">
+                                        <div class="mt-1">
+                                            <label class="btn btn-sm btn-outline-secondary mb-0">
+                                                變更圖片
+                                                <input type="file" accept="image/*" class="d-none"
+                                                    v-on:change="onImageSelected($event, it.giftId)">
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="card-body py-2">
+                                            <div class="d-flex justify-content-between">
+                                                <strong>{{ it.giftName || giftName(it.giftId) }}</strong>
+                                                <button class="btn btn-sm btn-outline-danger"
+                                                    v-on:click="removeItem(it.id)">移除</button>
+                                            </div>
+                                            <div class="text-muted">數量：{{ it.quantity }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-else class="text-muted">尚無贈品項目</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<script>
+    const App = {
+        data() {
+            return {
+                list: [],
+                gifts: [],
+                items: [],
+                currentId: 0,
+                form: { id: 0, name: '', conditionType: 'Amount', conditionValue: 0, startDate: null, endDate: null },
+                newItem: { giftId: 0, quantity: 1 }
+            }
+        },
+        mounted() { this.refresh(); this.loadGifts(); },
+        methods: {
+            api(path, options) { return fetch(`/admin/gift-rules/${path}`, { credentials: 'include', ...options }); },
+            async refresh() {
+                const r = await this.api('list');
+                this.list = await r.json();
+            },
+            async loadGifts() {
+                const r = await this.api('gifts');
+                this.gifts = await r.json();
+            },
+            async onImageSelected(e, giftId) {
+                const files = e.target.files;
+                if (!files || !files.length) return;
+                const file = files[0];
+                const fd = new FormData();
+                fd.append('file', file);
+                const r = await this.api(`gifts/${giftId}/image`, { method: 'POST', body: fd });
+                if (!r.ok) {
+                    let msg = 'unknown error';
+                    const ct = r.headers.get('content-type') || '';
+                    if (ct.includes('application/json')) { const j = await r.json().catch(() => null); msg = j?.message || JSON.stringify(j) || msg; }
+                    else { msg = (await r.text()).slice(0, 500); }
+                    alert(`上傳失敗: ${msg}`);
+                    return;
+                }
+                const data = await r.json();
+                // 更新本地 gifts 清單的 imageUrl，並強制刷新圖片快取（加時間戳）
+                const g = this.gifts.find(x => x.id === giftId);
+                if (g) { g.imageUrl = data.imageUrl + `?t=${Date.now()}`; }
+            },
+            formatDate(s) { if (!s) return ''; const d = new Date(s); return d.toLocaleString(); },
+            resetForm() { this.form = { id: 0, name: '', conditionType: 'Amount', conditionValue: 0, startDate: null, endDate: null }; this.items = []; this.currentId = 0; },
+            async saveRule() {
+                const payload = { name: this.form.name, conditionType: this.form.conditionType, conditionValue: Number(this.form.conditionValue) || 0, startDate: this.form.startDate, endDate: this.form.endDate };
+                if (!this.form.name) { alert('請輸入規則名稱'); return; }
+                let r;
+                if (this.currentId > 0) { r = await this.api(`${this.currentId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); }
+                else { r = await this.api('', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); }
+                if (!r.ok) { const t = await r.text(); alert(`儲存失敗: ${t}`); return; }
+                const data = await r.json();
+                if (data && data.id) { this.currentId = data.id; this.form.id = data.id; await this.editRule(data.id); }
+                await this.refresh();
+                alert('已儲存');
+            },
+            async editRule(id) {
+                const r = await this.api(`${id}`);
+                if (!r.ok) { alert('讀取失敗'); return; }
+                const dto = await r.json();
+                this.currentId = dto.id;
+                this.form = { id: dto.id, name: dto.name, conditionType: dto.conditionType, conditionValue: dto.conditionValue, startDate: dto.startDate ? dto.startDate.substring(0, 16) : null, endDate: dto.endDate ? dto.endDate.substring(0, 16) : null };
+                this.items = dto.items || [];
+            },
+            async removeRule(id) { if (!confirm('確定刪除此規則？')) return; const r = await this.api(`${id}`, { method: 'DELETE' }); if (r.ok) { await this.refresh(); if (this.currentId === id) { this.resetForm(); } } else { alert('刪除失敗'); } },
+            async addItem() { if (!this.currentId) { alert('請先儲存規則'); return; } const payload = { giftId: this.newItem.giftId, quantity: Math.max(1, Number(this.newItem.quantity) || 1) }; const r = await this.api(`${this.currentId}/items`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); if (!r.ok) { alert('新增失敗'); return; } await this.editRule(this.currentId); this.newItem = { giftId: 0, quantity: 1 }; },
+            async removeItem(itemId) { if (!confirm('移除此贈品？')) return; const r = await this.api(`${this.currentId}/items/${itemId}`, { method: 'DELETE' }); if (r.ok) { await this.editRule(this.currentId); } else { alert('移除失敗'); } },
+            imageSrc(giftId) {
+                const g = this.gifts.find(x => x.id === giftId);
+                if (g && g.imageUrl) { return g.imageUrl; }
+                // fallback: static folder under frontend yuzi/public/img/gift
+                return `/img/gift/${giftId}.jpg`;
+            },
+            giftName(gid) { const g = this.gifts.find(x => x.id === gid); return g ? g.name : `#${gid}`; }
+        }
+    }
+    Vue.createApp(App).mount('#app');
+</script>
+
+<style>
+    .table td,
+    .table th {
+        vertical-align: middle;
+    }
+</style>

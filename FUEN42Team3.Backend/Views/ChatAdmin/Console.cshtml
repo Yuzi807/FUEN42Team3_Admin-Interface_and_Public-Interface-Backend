@@ -1,0 +1,465 @@
+@inject Microsoft.Extensions.Configuration.IConfiguration Config
+@{
+    ViewData["Title"] = "Chat Console";
+    // 允許以環境變數覆蓋，例如 CHAT_HUB_URL / CHAT_AGENT_KEY
+    var hubUrl = Environment.GetEnvironmentVariable("CHAT_HUB_URL") ?? Config["Chat:HubUrl"] ??
+    "http://localhost:5217/hubs/chat";
+    var agentKey = Environment.GetEnvironmentVariable("CHAT_AGENT_KEY") ?? Config["Chat:AgentKey"] ?? "DevAgentKey123";
+    var agentName = User?.Identity?.Name ?? "Agent";
+}
+<div class="page-inner">
+    <div class="page-header">
+        <h3 class="fw-bold mb-3">客服對話台</h3>
+        <ul class="breadcrumbs">
+            <li class="nav-home"><a href="@Url.Action("Index", "Home")"><i class="fa fa-home"></i></a></li>
+            <li class="separator"><i class="fa fa-angle-right"></i></li>
+            <li class="nav-item">Chat</li>
+            <li class="separator"><i class="fa fa-angle-right"></i></li>
+            <li class="nav-item">Console</li>
+        </ul>
+    </div>
+
+    <div class="row">
+        <div class="col-md-5">
+            <div class="card h-100">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-2">
+                        <h4 class="card-title mb-0">會話清單</h4>
+                        <div class="btn-group btn-group-sm ms-2" role="group">
+                            <button type="button" class="btn btn-outline-secondary" id="btn-tab-open">未處理</button>
+                            <button type="button" class="btn btn-outline-secondary" id="btn-tab-closed">已處理</button>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <button class="btn btn-sm btn-primary" id="btn-refresh">刷新</button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush" id="conv-list"></ul>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-center align-items-center w-100">
+                        <div class="pagination small text-muted">
+                            <button class="btn btn-sm btn-outline-secondary" id="btn-prev">上一頁</button>
+                            <span id="page-info" class="mx-2"></span>
+                            <button class="btn btn-sm btn-outline-secondary" id="btn-next">下一頁</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-7">
+            <div class="card h-100">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h4 class="card-title mb-0">訊息</h4>
+                    <div class="text-end small text-muted" id="conv-meta"></div>
+                </div>
+                <div class="card-body" id="messages" style="height:420px; overflow:auto; background:#fafafa"></div>
+                <div class="card-footer d-flex">
+                    <input class="form-control me-2" id="msgBox" placeholder="輸入訊息..." />
+                    <button class="btn btn-success" id="btnSend">送出</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+    <script>
+        const HUB_URL = '@hubUrl';
+        const AGENT_KEY = '@agentKey';
+        const AGENT_NAME = '@agentName';
+        let currentConvId = null;
+        let hub = null;
+        let convCache = new Map(); // id -> { memberId, unread, display, lastMs, status }
+        let pendingLoad = false;   // 防止重複 reload 清單
+        let currentStatusFilter = 'open'; // open=Open/Live, closed=Closed
+        let page = 1;
+        let pageSize = 20;
+        let total = 0;
+
+        async function loadConversations() {
+            try {
+                pendingLoad = true;
+                const statusParam = (currentStatusFilter === 'closed') ? 'Closed' : 'Open';
+                const url = `/admin/chat/conversations?status=${encodeURIComponent(statusParam)}&page=${page}&pageSize=${pageSize}`;
+                const res = await fetch(url);
+                const payload = await res.json();
+                // 兼容舊格式（array）與新格式（{ total, data })
+                const list = Array.isArray(payload) ? payload : (payload?.data || []);
+                total = Array.isArray(payload) ? list.length : (payload?.total || 0);
+                convCache.clear();
+                list.forEach(c => {
+                    const display = `${c.memberAccount} / ${c.memberNickname || c.memberAccount} / #${c.memberId}`;
+                    const lastMs = c.lastMessageAt ? new Date(c.lastMessageAt).getTime() : 0;
+                    convCache.set(c.id, { memberId: c.memberId, unread: c.unreadCount || 0, display, lastMs, status: c.status });
+                });
+                // 與前台同步 Live/Open：向 Hub 查詢每個房間的即時狀態（考慮記憶體覆寫）
+                try {
+                    await ensureHub();
+                    const syncTasks = [];
+                    for (const [id, v] of convCache.entries()) {
+                        const room = 'M' + v.memberId;
+                        syncTasks.push(hub.invoke('GetRoomStatus', room, getAgentKey()).then(s => ({ id, s })).catch(() => ({ id, s: null })));
+                    }
+                    const results = await Promise.all(syncTasks);
+                    let changed = false;
+                    for (const r of results) {
+                        if (!r || !r.s) continue;
+                        const cached = convCache.get(r.id);
+                        if (cached && cached.status !== r.s) { cached.status = r.s; convCache.set(r.id, cached); changed = true; }
+                    }
+                    if (changed) renderListFromCache();
+                } catch { /* ignore sync errors */ }
+                renderListFromCache();
+            } finally {
+                pendingLoad = false;
+            }
+        }
+
+        function renderListFromCache() {
+            const ul = document.getElementById('conv-list');
+            ul.innerHTML = '';
+            const arr = Array.from(convCache.entries()) // [id, obj]
+                .map(([id, v]) => ({ id, ...v }))
+                .sort((a, b) => (b.lastMs || 0) - (a.lastMs || 0));
+            arr.forEach(c => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                li.dataset.convId = c.id;
+                const snippetHtml = c.lastSnippet ? `<div class="text-truncate small" style="max-width: 360px;">${c.lastSnippet}</div>` : '';
+                li.innerHTML = `
+                                                            <div>
+                                                                <div class="fw-bold">#${c.id} - ${c.display}</div>
+                                                                <div class="text-muted small">${statusBadge(c.status)} Last: ${c.lastMs ? new Date(c.lastMs).toLocaleString() : ''}</div>
+                                                                ${snippetHtml}
+                                                            </div>
+                                                            <div>
+                                                                <span class="badge bg-danger me-2" title="未讀訊息" ${(c.status === 'Closed' || !c.unread) ? 'style="display:none"' : ''}>${c.unread || ''}</span>
+                                                                <button class="btn btn-sm btn-outline-primary me-1" onclick="reply(${c.id})">回覆</button>
+                                                                <button class="btn btn-sm btn-outline-secondary me-1" style="display:none" onclick="release(${c.id})">釋出</button>
+                                                                <button class="btn btn-sm btn-outline-info me-1" ${(c.status === 'Live' || currentStatusFilter === 'closed') ? 'style="display:none"' : ''} onclick="startLive(${c.id})">真人</button>
+                                                                <button class="btn btn-sm btn-outline-warning me-1" ${c.status === 'Live' ? '' : 'style="display:none"'} onclick="endLive(${c.id})">結束真人</button>
+                                                                ${c.status === 'Closed' ? `<button class="btn btn-sm btn-outline-success" onclick="reopen(${c.id})">重新開啟</button>` : `<button class="btn btn-sm btn-outline-danger" onclick="closeConv(${c.id})">已處理完畢</button>`}
+                                                            </div>`;
+                li.onclick = () => openConv(c.id);
+                ul.appendChild(li);
+            });
+            updatePageInfo();
+        }
+
+        function statusBadge(s) {
+            if (s === 'Live') return '<span class="badge bg-danger me-2">Live</span>';
+            if (s === 'Open') return '<span class="badge bg-secondary me-2">Open</span>';
+            if (s === 'Closed') return '<span class="badge bg-success me-2">Closed</span>';
+            return '';
+        }
+
+        function updatePageInfo() {
+            const el = document.getElementById('page-info');
+            if (!el) return;
+            const pages = Math.max(1, Math.ceil(total / pageSize));
+            el.textContent = `第 ${page} / ${pages} 頁（共 ${total} 筆）`;
+        }
+
+        async function openConv(id) {
+            currentConvId = id;
+            const res = await fetch(`/admin/chat/${id}/messages`);
+            const msgs = await res.json();
+            const box = document.getElementById('messages');
+            box.innerHTML = '';
+            const meta = document.getElementById('conv-meta');
+            const cached = convCache.get(id);
+            meta.textContent = cached ? cached.display : '';
+            msgs.forEach(m => renderMessage(m));
+            // 依需求：未回覆前仍需顯示未讀數，因此開啟會話時不自動清除未讀。
+            // 加入會員房間，便於即時接收
+            await ensureHub();
+            const room = 'M' + (await getMemberIdByConv(id));
+            await hub.invoke('JoinRoomAsAgent', room, getAgentKey());
+        }
+
+        function addMsg(t) {
+            const box = document.getElementById('messages');
+            const div = document.createElement('div');
+            div.textContent = t;
+            div.className = 'mb-1';
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function renderMessage(m) {
+            const box = document.getElementById('messages');
+            // 日期分隔
+            const lastSep = box.querySelector('.date-sep:last-of-type');
+            const prevDate = lastSep ? lastSep.getAttribute('data-date') : null;
+            const dateLabel = (m.createdAt ? new Date(m.createdAt) : new Date()).toLocaleDateString();
+            if (!prevDate || prevDate !== dateLabel) {
+                const sep = document.createElement('div');
+                sep.className = 'date-sep text-center text-muted small my-2';
+                sep.setAttribute('data-date', dateLabel);
+                sep.textContent = dateLabel;
+                box.appendChild(sep);
+            }
+
+            const div = document.createElement('div');
+            div.className = 'mb-2';
+            const strong = document.createElement('strong');
+            strong.textContent = (m.senderDisplay || m.sender) + ': ';
+            div.appendChild(strong);
+            if (m.type === 'Product') {
+                const span = document.createElement('span');
+                span.textContent = `商品#${m.productId}${m.productName ? ' - ' + m.productName : ''} `;
+                div.appendChild(span);
+                if (m.url) {
+                    const a = document.createElement('a');
+                    a.href = m.url; a.target = '_blank'; a.textContent = '查看商品';
+                    div.appendChild(a);
+                }
+            } else {
+                const span = document.createElement('span');
+                span.textContent = m.content || '';
+                div.appendChild(span);
+            }
+            const time = document.createElement('div');
+            time.className = 'text-muted small';
+            time.textContent = (m.createdAt ? new Date(m.createdAt) : new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            div.appendChild(time);
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        async function ensureHub() {
+            if (hub) return hub;
+            // 由設定提供完整 URL
+            hub = new signalR.HubConnectionBuilder().withUrl(HUB_URL).withAutomaticReconnect().build();
+            await hub.start();
+            hub.on('messageReceived', m => {
+                const cid = m.conversationId;
+                // 未讀徽章規則：只要是會員來的訊息，就視為未讀 +1（直到客服回覆才歸零）
+                if (m.sender === 'Member') {
+                    const c = convCache.get(cid);
+                    if (c) { c.unread = (c.unread || 0) + 1; updateUnreadBadge(cid, c.unread); }
+                }
+                // 更新最後訊息時間並重排
+                const c2 = convCache.get(cid);
+                if (c2 && m.createdAt) { c2.lastMs = new Date(m.createdAt).getTime(); renderListFromCache(); }
+                if (m.conversationId === currentConvId) renderMessage(m);
+            });
+            // 監聽會員/坐席切換真人狀態
+            hub.on('liveStatusChanged', p => {
+                if (!currentConvId) return;
+                const cached = convCache.get(currentConvId);
+                if (cached && p && p.status) { cached.status = p.status; renderListFromCache(); }
+            });
+            // 後台加入 Admin 群組
+            await hub.invoke('JoinAgents', getAgentKey());
+            // 啟動後嘗試同步目前清單中的每個會話狀態（避免重新整理造成的不同步）
+            try {
+                const tasks = [];
+                for (const [id, v] of convCache.entries()) {
+                    const room = 'M' + v.memberId;
+                    tasks.push(hub.invoke('GetRoomStatus', room, getAgentKey()).then(s => ({ id, s })).catch(() => ({ id, s: null })));
+                }
+                const results = await Promise.all(tasks);
+                let changed = false;
+                for (const r of results) {
+                    if (!r || !r.s) continue;
+                    const cached = convCache.get(r.id);
+                    if (cached && cached.status !== r.s) { cached.status = r.s; convCache.set(r.id, cached); changed = true; }
+                }
+                if (changed) renderListFromCache();
+            } catch { }
+            // 後台全域提示事件：更新未讀與快取
+            hub.on('adminConvHint', hint => {
+                const cid = hint.conversationId;
+                let cached = convCache.get(cid);
+                // 若清單尚無該會話，觸發一次載入
+                if (!cached) {
+                    if (!pendingLoad) loadConversations();
+                    return; // 讓載入流程統一渲染
+                }
+                // 特殊事件：Closed -> 從未處理清單移除；LiveEnded -> 狀態改為 Open 並清未讀
+                if (hint.kind === 'Closed') {
+                    convCache.delete(cid);
+                    if (currentConvId === cid) {
+                        currentConvId = null;
+                        const box = document.getElementById('messages');
+                        const meta = document.getElementById('conv-meta');
+                        if (box) box.innerHTML = '';
+                        if (meta) meta.textContent = '';
+                    }
+                    renderListFromCache();
+                    return;
+                }
+                // 會員按「真人」：同步顯示為 Live
+                if (hint.kind === 'Live') {
+                    const c0 = convCache.get(cid) || {};
+                    cached = { ...c0, status: 'Live' };
+                    convCache.set(cid, cached);
+                    renderListFromCache();
+                    return;
+                }
+                if (hint.kind === 'LiveEnded') {
+                    const c0 = convCache.get(cid) || {};
+                    cached = { ...c0, status: 'Open', unread: 0 };
+                    convCache.set(cid, cached);
+                    updateUnreadBadge(cid, 0);
+                    renderListFromCache();
+                    return;
+                }
+                // 更新未讀、顯示名稱與最後時間
+                cached = { ...cached };
+                if (hint.from === 'Member' && cid !== currentConvId) {
+                    cached.unread = (cached.unread || 0) + 1;
+                } else if (hint.from === 'Agent') {
+                    // 客服回覆後，該會話未讀應清空
+                    cached.unread = 0;
+                }
+                if (hint.display) cached.display = hint.display;
+                if (hint.lastMessageAt) cached.lastMs = new Date(hint.lastMessageAt).getTime();
+                convCache.set(cid, cached);
+                updateUnreadBadge(cid, cached.unread || 0);
+                renderListFromCache();
+            });
+            return hub;
+        }
+
+        function getAgentKey() {
+            return AGENT_KEY; // 從設定或環境變數取得
+        }
+
+        async function getMemberIdByConv(id) {
+            // 先從快取
+            const cached = convCache.get(id);
+            if (cached) return cached.memberId;
+            // fallback：重新查詢
+            const res = await fetch(`/admin/chat/conversations?status=${encodeURIComponent(currentStatusFilter === 'closed' ? 'Closed' : 'Open')}&page=1&pageSize=${pageSize}`);
+            const payload = await res.json();
+            const list = Array.isArray(payload) ? payload : (payload?.data || []);
+            list.forEach(c => {
+                const display = `${c.memberAccount} / ${c.memberNickname || c.memberAccount} / #${c.memberId}`;
+                convCache.set(c.id, { memberId: c.memberId, unread: c.unreadCount || 0, display, lastMs: c.lastMessageAt ? new Date(c.lastMessageAt).getTime() : 0, status: c.status });
+            });
+            const c = list.find(x => x.id === id);
+            return c ? c.memberId : null;
+        }
+
+        async function send() {
+            if (!currentConvId) return;
+            const text = document.getElementById('msgBox').value.trim();
+            if (!text) return;
+            // 直接透過 Hub 廣播（並由 Hub 寫入資料庫）
+            await ensureHub();
+            const memberId = await getMemberIdByConv(currentConvId);
+            if (memberId) {
+                const room = 'M' + memberId;
+                // 先接手會話，確保資料庫 AssignedAgentId 設為本人，便於後續顯示使用者名稱
+                try { await fetch(`/admin/chat/${currentConvId}/take`, { method: 'POST' }); } catch { }
+                await hub.invoke('SendAgentText', room, text, getAgentKey(), AGENT_NAME);
+            }
+            document.getElementById('msgBox').value = '';
+        }
+
+        function reply(id) { openConv(id); }
+        async function release(id) {
+            const res = await fetch(`/admin/chat/${id}/release`, { method: 'POST' });
+            if (res.ok) {
+                await ensureHub();
+                const cached = convCache.get(id);
+                hub.invoke('AdminBroadcast', {
+                    conversationId: id,
+                    lastMessageAt: cached?.lastMs ? new Date(cached.lastMs).toISOString() : new Date().toISOString(),
+                    from: 'System',
+                    kind: 'Released'
+                }, getAgentKey());
+            }
+        }
+        async function endLive(id) {
+            try {
+                await ensureHub();
+                const memberId = await getMemberIdByConv(id);
+                if (!memberId) return;
+                const room = 'M' + memberId;
+                await hub.invoke('SetLiveAsAgent', room, false, getAgentKey());
+                // 本地更新狀態
+                const c = convCache.get(id);
+                if (c) { c.status = 'Open'; c.unread = 0; convCache.set(id, c); renderListFromCache(); updateUnreadBadge(id, 0); }
+                // 廣播讓其他坐席同步
+                hub.invoke('AdminBroadcast', {
+                    conversationId: id,
+                    lastMessageAt: new Date().toISOString(),
+                    from: 'System',
+                    kind: 'LiveEnded'
+                }, getAgentKey());
+            } catch (e) { console.error(e); }
+        }
+        async function startLive(id) {
+            try {
+                await ensureHub();
+                const memberId = await getMemberIdByConv(id);
+                if (!memberId) return;
+                const room = 'M' + memberId;
+                await hub.invoke('SetLiveAsAgent', room, true, getAgentKey());
+                const c = convCache.get(id);
+                if (c) { c.status = 'Live'; convCache.set(id, c); renderListFromCache(); }
+            } catch (e) { console.error(e); }
+        }
+        async function closeConv(id) {
+            const res = await fetch(`/admin/chat/${id}/close`, { method: 'POST' });
+            if (res.ok) {
+                await ensureHub();
+                hub.invoke('AdminBroadcast', {
+                    conversationId: id,
+                    lastMessageAt: new Date().toISOString(),
+                    from: 'System',
+                    kind: 'Closed'
+                }, getAgentKey());
+                // 本地也從清單移除，並清除未讀與右側面板
+                convCache.delete(id);
+                if (currentConvId === id) {
+                    currentConvId = null;
+                    const box = document.getElementById('messages');
+                    const meta = document.getElementById('conv-meta');
+                    if (box) box.innerHTML = '';
+                    if (meta) meta.textContent = '';
+                }
+                renderListFromCache();
+            }
+        }
+        async function reopen(id) {
+            const res = await fetch(`/admin/chat/${id}/reopen`, { method: 'POST' });
+            if (res.ok) { loadConversations(); }
+        }
+
+        // wire UI
+        document.getElementById('btn-refresh').addEventListener('click', loadConversations);
+        document.getElementById('btn-tab-open').addEventListener('click', () => { currentStatusFilter = 'open'; page = 1; loadConversations(); });
+        document.getElementById('btn-tab-closed').addEventListener('click', () => { currentStatusFilter = 'closed'; page = 1; loadConversations(); });
+        document.getElementById('btn-prev').addEventListener('click', () => { if (page > 1) { page--; loadConversations(); } });
+        document.getElementById('btn-next').addEventListener('click', () => { const pages = Math.max(1, Math.ceil(total / pageSize)); if (page < pages) { page++; loadConversations(); } });
+        document.getElementById('btnSend').addEventListener('click', send);
+        document.getElementById('msgBox').addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+        // 啟動時即建立 Hub 以便即時接收
+        (async () => { try { await ensureHub(); } catch (e) { } })();
+        loadConversations();
+
+        // 已改為僅由 SignalR 推送，不再輪詢
+
+        function updateUnreadBadge(convId, unread) {
+            const li = document.querySelector(`#conv-list .list-group-item[data-conv-id="${convId}"]`);
+            if (!li) return;
+            const badge = li.querySelector('.badge');
+            if (!badge) return;
+            if (unread > 0) { badge.style.display = 'inline-block'; badge.textContent = unread; }
+            else { badge.style.display = 'none'; }
+        }
+    </script>
+}
+
+<style>
+    .date-sep {
+        opacity: .7;
+    }
+</style>

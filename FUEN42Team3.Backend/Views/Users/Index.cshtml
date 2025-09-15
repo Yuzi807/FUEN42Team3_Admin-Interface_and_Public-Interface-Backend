@@ -1,0 +1,433 @@
+﻿@{
+    ViewData["Title"] = "管理員列表 | GhostToys魔型仔";
+    Layout = "_Layout";
+    
+    // 檢查當前用戶是否為超級管理員
+    var isSuperAdmin = ViewBag.IsSuperAdmin ?? false;
+}
+<div class="page-inner">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">管理員列表</h4>
+            </div>
+            <div class="card-body">
+                <!-- 操作按鈕 - 只有超級管理員可以看到 -->
+                @if (isSuperAdmin)
+                {
+                    <div class="d-flex">
+                        <div class="card-body">
+                            <button id="btnAddAdmin" class="btn btn-secondary btn-round mb-3 me-2">
+                                <span class="btn-label">
+                                    <i class="fa fa-plus"></i>
+                                </span> 新增管理員
+                            </button>
+                        </div>
+                    </div>
+                }
+                
+                <!-- 操作成功提示 -->
+                @if (TempData["SuccessMessage"] != null)
+                {
+                    <div class="alert alert-success alert-dismissible fade show mx-3" role="alert">
+                        <i class="fa fa-check me-2"></i> @TempData["SuccessMessage"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+
+                <div class="table-responsive">
+                    <table id="adminTable" class="display table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>編號</th>
+                                <th>使用者名稱</th>
+                                <th>帳號</th>
+                                <th>使用者權限</th>
+                                <th>狀態</th>
+                                <th>建立時間</th>
+                                @if (isSuperAdmin)
+                                {
+                                    <th>操作</th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 新增/編輯管理員 Modal -->
+<div class="modal fade" id="adminModal" tabindex="-1" aria-labelledby="adminModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="adminModalLabel">新增/編輯管理員</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="adminForm" class="modal-body row g-3 px-3">
+                <input type="hidden" name="Id" />
+                <div class="col-md-6">
+                    <label class="form-label">使用者名稱</label>
+                    <input type="text" class="form-control" name="UserName" required />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">帳號</label>
+                    <input type="text" class="form-control" name="Account" required />
+                </div>
+                <!-- 密碼欄位只在新增時顯示 -->
+                <div class="col-md-6" id="passwordFieldContainer">
+                    <label class="form-label">密碼</label>
+                    <input type="password" class="form-control" name="Password" />
+                    <small class="form-text text-muted">請設定初始密碼，留空將使用預設密碼 "000000"</small>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">角色</label>
+                    <select class="form-select" name="RoleId" required>
+                        @foreach (var role in ViewBag.Roles)
+                        {
+                            <option value="@role.Id">@role.RoleName</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">狀態</label>
+                    <select class="form-select" name="IsActive">
+                        <option value="true">啟用</option>
+                        <option value="false">停用</option>
+                    </select>
+                </div>
+                <div class="col-12" id="passwordChangeNoteContainer" style="display: none;">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        如需修改密碼，請使用個人資料中的「修改密碼」功能
+                    </div>
+                </div>
+            </form>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" id="saveAdminBtn" class="btn btn-primary">儲存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 保存當前登入用戶 ID 和角色 -->
+<input type="hidden" id="currentUserId" value="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value" />
+<input type="hidden" id="isSuperAdmin" value="@isSuperAdmin.ToString().ToLower()" />
+
+@section Scripts {
+    <!-- Sweet Alert -->
+    <script src="~/assets/js/plugin/sweetalert/sweetalert.min.js"></script>
+    
+    <!-- Datatables -->
+    <script src="~/assets/js/plugin/datatables/datatables.min.js"></script>
+    
+    <script>
+        $(document).ready(function () {
+            // 獲取當前登入用戶 ID 和是否為超級管理員
+            const currentUserId = parseInt($("#currentUserId").val());
+            const isSuperAdmin = $("#isSuperAdmin").val() === "true";
+            
+            // 定義表格列配置
+            const columns = [
+                { data: "id", title: "編號" },
+                { data: "userName", title: "使用者名稱" },
+                { data: "account", title: "帳號" },
+                { data: "roleName", title: "角色" },
+                {
+                    data: "isActive",
+                    title: "狀態",
+                    render: function (data) {
+                        return data ? '<span class="badge badge-success">啟用</span>' : '<span class="badge badge-danger">停用</span>';
+                    }
+                },
+                { 
+                    data: "createdAt", 
+                    title: "建立時間",
+                    render: function(data) {
+                        return formatDateTime(data);
+                    }
+                }
+            ];
+            
+            // 只有超級管理員才有操作欄
+            if (isSuperAdmin) {
+                columns.push({
+                    data: null,
+                    title: "操作",
+                    orderable: false,
+                    render: function (data, type, row, meta) {
+                        // 不顯示自己的停用按鈕，以防誤操作
+                        let toggleButton = '';
+                        if (row.id !== currentUserId) {
+                            toggleButton = `<a href="#" class="btn-toggle-status" data-id="${row.id}" data-status="${row.isActive}" title="${row.isActive ? '停用' : '啟用'}">
+                                <i class="fa ${row.isActive ? 'fa-toggle-on text-success' : 'fa-toggle-off text-danger'}"></i>
+                            </a>`;
+                        }
+                        
+                        return `
+                            <div class="d-flex">
+                                <a href="#" class="btn-edit text-primary me-2" data-id="${row.id}" title="編輯">
+                                    <i class="fa fa-edit"></i>
+                                </a>
+                                ${toggleButton}
+                            </div>
+                        `;
+                    }
+                });
+            }
+            
+            // 初始化 DataTable
+            const $table = $("#adminTable").DataTable({
+                responsive: true,
+                autoWidth: false,
+                processing: true,
+                ajax: {
+                    url: '/api/UsersApi',
+                    type: 'GET',
+                    dataSrc: ''
+                },
+                columns: columns,
+                columnDefs: [
+                    { width: "8%", targets: 0 },    // Id
+                    { width: "15%", targets: 1 },   // UserName
+                    { width: "15%", targets: 2 },   // Account
+                    { width: "15%", targets: 3 },   // RoleName
+                    { width: "10%", targets: 4 },   // IsActive
+                    { width: "25%", targets: 5 },   // CreatedAt
+                    // 操作欄位的寬度設定（只有超級管理員才有）
+                    ...(isSuperAdmin ? [{ width: "15%", targets: 6 }] : [])
+                ],
+                language: {
+                    url: "//cdn.datatables.net/plug-ins/1.13.6/i18n/zh-HANT.json"
+                }
+            });
+
+            // 格式化日期時間
+            function formatDateTime(dateStr) {
+                if (!dateStr) return '';
+                const date = new Date(dateStr);
+                return date.toLocaleString('zh-TW', { 
+                    year: 'numeric', 
+                    month: '2-digit', 
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+            }
+            
+            // 處理登出函數
+            function handleLogout(message) {
+                swal({
+                    title: '需要登出',
+                    text: message,
+                    icon: 'warning',
+                    buttons: {
+                        confirm: {
+                            text: "確定",
+                            value: true
+                        }
+                    }
+                }).then(() => {
+                    // 導向登出頁面
+                    window.location.href = '/Auth/Logout';
+                });
+            }
+
+            // 如果不是超級管理員，以下事件處理程序不需要註冊
+            if (!isSuperAdmin) {
+                return;
+            }
+            
+            // 切換使用者狀態 (只有超級管理員可以使用)
+            $('#adminTable').on('click', '.btn-toggle-status', function (e) {
+                e.preventDefault();
+                const id = $(this).data("id");
+                const currentStatus = $(this).data("status");
+                const newStatus = !currentStatus;
+                const statusText = newStatus ? "啟用" : "停用";
+                
+                swal({
+                    title: `確定要${statusText}此使用者嗎？`,
+                    text: newStatus ? '' : '停用後該用戶將無法登入系統，如果該用戶當前已登入則會被強制登出。',
+                    icon: 'warning',
+                    buttons: {
+                        cancel: {
+                            text: "取消",
+                            value: false,
+                            visible: true
+                        },
+                        confirm: {
+                            text: `確定${statusText}`,
+                            value: true
+                        }
+                    },
+                    dangerMode: !newStatus,
+                })
+                .then((confirmed) => {
+                    if (confirmed) {
+                        // 呼叫 API 更新狀態
+                        $.ajax({
+                            url: `/api/UsersApi/${id}/status`,
+                            type: 'PUT',
+                            contentType: 'application/json',
+                            data: JSON.stringify(newStatus),
+                            success: function(response) {
+                                // 檢查是否需要登出（停用的是當前用戶）
+                                if (response && response.requireLogout) {
+                                    if (response.userId === currentUserId) {
+                                        // 如果是停用自己，顯示提示並登出
+                                        handleLogout(`您的帳號已被停用，系統將自動登出。`);
+                                    } else {
+                                        // 如果停用其他用戶，顯示成功訊息
+                                        swal('成功', `使用者 ${response.userName} (${response.account}) 已停用並將被強制登出。`, 'success');
+                                        $table.ajax.reload();
+                                    }
+                                } else {
+                                    // 啟用或其他操作，顯示成功訊息
+                                    swal('成功', `使用者已${statusText}`, 'success');
+                                    $table.ajax.reload();
+                                }
+                            },
+                            error: function(xhr) {
+                                swal('錯誤', xhr.responseText || '操作失敗，請稍後再試', 'error');
+                            }
+                        });
+                    }
+                });
+            });
+
+            // 編輯按鈕事件 (只有超級管理員可以使用)
+            $('#adminTable').on('click', '.btn-edit', function (e) {
+                e.preventDefault();
+                const id = $(this).data("id");
+                
+                // 透過 API 獲取單一使用者資料
+                $.ajax({
+                    url: `/api/UsersApi/${id}`,
+                    type: 'GET',
+                    success: function(user) {
+                        const form = $("#adminForm")[0];
+                        form.Id.value = user.id;
+                        form.UserName.value = user.userName;
+                        form.Account.value = user.account;
+                        
+                        // 設定角色下拉選單
+                        $("select[name='RoleId']").val(user.roleId);
+                        
+                        form.IsActive.value = user.isActive.toString();
+                        
+                        // 隱藏密碼欄位，顯示修改密碼提示
+                        $("#passwordFieldContainer").hide();
+                        $("#passwordChangeNoteContainer").show();
+                        
+                        // 帳號不可編輯
+                        form.Account.readOnly = true;
+                        
+                        // 編輯自己時，狀態欄位也不可編輯
+                        const isEditingSelf = (parseInt(user.id) === currentUserId);
+                        if (isEditingSelf) {
+                            $("select[name='IsActive']").prop("disabled", true);
+                            // 添加提示說明
+                            if (!$("#isActiveNoteContainer").length) {
+                                $("select[name='IsActive']").after(
+                                    '<div id="isActiveNoteContainer" class="form-text text-muted mt-1">您不能更改自己的啟用狀態</div>'
+                                );
+                            }
+                        } else {
+                            $("select[name='IsActive']").prop("disabled", false);
+                            $("#isActiveNoteContainer").remove();
+                        }
+                        
+                        $("#adminModalLabel").text("編輯管理員");
+                        new bootstrap.Modal("#adminModal").show();
+                    },
+                    error: function(xhr) {
+                        swal('錯誤', xhr.responseText || '無法取得使用者資料', 'error');
+                    }
+                });
+            });
+
+            // 新增管理員按鈕 (只有超級管理員可以使用)
+            $("#btnAddAdmin").click(function() {
+                const form = $("#adminForm")[0];
+                form.reset();
+                form.Id.value = "";
+                form.Account.readOnly = false;
+                
+                // 啟用狀態欄位
+                $("select[name='IsActive']").prop("disabled", false);
+                $("#isActiveNoteContainer").remove();
+                
+                // 顯示密碼欄位，隱藏修改密碼提示
+                $("#passwordFieldContainer").show();
+                $("#passwordChangeNoteContainer").hide();
+                
+                $("#adminModalLabel").text("新增管理員");
+                new bootstrap.Modal("#adminModal").show();
+            });
+
+            // 儲存按鈕事件 (只有超級管理員可以使用)
+            $("#saveAdminBtn").click(function() {
+                const form = $("#adminForm")[0];
+                const formData = new FormData(form);
+                const isEditing = formData.get("Id") !== "";
+                
+                const userData = {
+                    id: parseInt(formData.get("Id")) || 0,
+                    userName: formData.get("UserName"),
+                    account: formData.get("Account"),
+                    roleId: parseInt(formData.get("RoleId")),
+                    isActive: formData.get("IsActive") === "true"
+                };
+                
+                // 只在新增時設定密碼
+                if (!isEditing) {
+                    // 如果密碼為空，設定預設密碼為 "000000"
+                    userData.password = formData.get("Password") || "000000";
+                }
+                
+                // 驗證必填欄位
+                if (!userData.userName || (!isEditing && !userData.account)) {
+                    swal('錯誤', '請填寫必填欄位', 'error');
+                    return;
+                }
+                
+                // 根據是新增或編輯決定 API 呼叫方式
+                const apiMethod = isEditing ? 'PUT' : 'POST';
+                const apiUrl = isEditing ? `/api/UsersApi/${userData.id}` : '/api/UsersApi';
+                
+                $.ajax({
+                    url: apiUrl,
+                    type: apiMethod,
+                    contentType: 'application/json',
+                    data: JSON.stringify(userData),
+                    success: function(response) {
+                        // 檢查是否需要登出（如果是編輯自己並停用）
+                        if (response && response.requireLogout && response.userId === currentUserId) {
+                            handleLogout(`您的帳號已被停用，系統將自動登出。`);
+                        } else {
+                            // 成功後關閉 Modal 並重新載入表格資料
+                            bootstrap.Modal.getInstance(document.querySelector("#adminModal")).hide();
+                            $table.ajax.reload();
+                            
+                            // 如果是新增且使用了預設密碼，提醒用戶
+                            if (!isEditing && !formData.get("Password")) {
+                                swal('成功', `使用者已新增，初始密碼為 "000000"`, 'success');
+                            } else {
+                                swal('成功', isEditing ? '使用者資料已更新' : '使用者已新增', 'success');
+                            }
+                        }
+                    },
+                    error: function(xhr) {
+                        swal('錯誤', xhr.responseText || '操作失敗，請稍後再試', 'error');
+                    }
+                });
+            });
+        });
+    </script>
+}

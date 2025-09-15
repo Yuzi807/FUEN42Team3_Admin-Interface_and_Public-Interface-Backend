@@ -1,0 +1,1248 @@
+﻿@model FUEN42Team3.Backend.Models.ViewModels.BranchsIndexViewModel
+@{
+    ViewData["Title"] = "分店管理 | GhostToys魔型仔";
+    Layout = "_Layout";
+}
+
+<div class="page-inner">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">分店管理</h4>
+            </div>
+            <div class="card-body">
+                <!-- 篩選搜尋區 -->
+                <div asp-action="Index" method="get" id="filterForm">
+                    <div class="card shadow-sm mx-3 pb-3">
+                        <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
+                            <h6 class="m-0 font-weight-bold"><i class="fas fa-filter mr-1"></i> 篩選搜尋</h6>
+                            <div>
+                                <button class="btn btn-light btn-sm" id="resetBranchFilters" type="button">
+                                    <i class="fas fa-redo"></i> 重設篩選
+                                </button>
+                                <button class="btn btn-primary btn-sm" type="submit">
+                                    <i class="fas fa-search"></i> 搜尋
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body pb-0">
+                            <div class="row">
+                                <div class="col-md-4 col-sm-6">
+                                    <div class="form-group">
+                                        <label>關鍵字搜尋</label>
+                                        <input type="text" class="form-control" name="searchTerm" id="searchTerm"
+                                               placeholder="分店名稱、地址或電話" value="@ViewData["SearchTerm"]">
+                                    </div>
+                                </div>
+                                <div class="col-md-4 col-sm-6">
+                                    <div class="form-group">
+                                        <label>區域分類</label>
+                                        <select class="form-control" name="regionId" id="regionId">
+                                            <option value="">全部區域</option>
+                                            @foreach (var region in Model.RegionList)
+                                            {
+                                                <option value="@region.Id">@region.Name</option>
+                                            }
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 col-sm-6">
+                                    <div class="form-group">
+                                        <label>顯示狀態</label>
+                                        <select class="form-control" name="isVisible" id="isVisible">
+                                            <option value="">全部</option>
+                                            <option value="公開">公開</option>
+                                            <option value="隱藏">隱藏</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <!-- 操作按鈕 -->
+                    <div class="d-flex">
+                        <div class="card-body">
+                            <button class="btn btn-secondary btn-round mb-3 me-2" data-bs-toggle="modal"
+                                    data-bs-target="#addBranchModal">
+                                <span class="btn-label"><i class="fa fa-plus"></i></span>新增分店
+                            </button>
+                            <button id="batch-delete-btn" class="btn btn-primary btn-round mb-3 me-2" disabled>
+                                <span class="btn-label"><i class="far fa-trash-alt"></i></span>
+                                <span class="ms-2">批量刪除</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 操作成功提示 -->
+                    <div id="branch-success-message" class="mx-3" style="display: none;">
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="fa fa-check me-2"></i> <span id="branch-success-text"></span>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    </div>
+
+                    <!-- 分店列表表格 -->
+                    <div class="table-responsive">
+                        <table id="branch-datatables" class="display table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th><input type="checkbox" id="branch-check-all" title="全選/取消全選" /></th>
+                                    <th>編號</th>
+                                    <th>分店名稱</th>
+                                    <th>聯絡電話</th>
+                                    <th>地址</th>
+                                    <th>顯示/隱藏</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var branch in Model.BranchList)
+                                {
+                                    <tr>
+                                        <td><input type="checkbox" class="branch-checkbox" data-id="@branch.Id" /></td>
+                                        <td>@branch.Id</td>
+                                        <td>@branch.Name</td>
+                                        <td>@(string.IsNullOrEmpty(branch.Phone) ? "未設定" : branch.Phone)</td>
+                                        <td>@(string.IsNullOrEmpty(branch.Address) ? "未設定" : branch.Address)</td>
+                                        <td>
+                                        @if (branch.IsVisible == true)
+                                        {
+                                            <span class="badge badge-success">公開</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge badge-count">隱藏</span>
+                                        }
+                                        </td>
+                                        <td>
+                                            <a href="#" class="edit-branch-btn" data-id="@branch.Id">
+                                                <i class="fa fa-edit" title="編輯"></i>
+                                            </a>
+                                            &nbsp;
+                                            <a href="#" class="delete-branch-btn" data-id="@branch.Id">
+                                                <i class="fa fa-times text-danger" title="刪除"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- 新增分店Modal -->
+                    <div class="modal fade" id="addBranchModal" tabindex="-1"
+                         aria-labelledby="addBranchModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="addBranchModalLabel">
+                                        <i class="fas fa-store-alt text-primary me-2"></i>新增分店
+                                    </h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                            aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <form id="addBranchForm">
+                                        <div class="row mb-2">
+                                            <div class="col-md-12">
+                                                <div class="form-group">
+                                                    <label for="branchName" class="form-label">
+                                                        分店名稱 <span class="text-danger">*</span>
+                                                    </label>
+                                                    <input type="text" class="form-control" id="branchName"
+                                                           name="branchName" placeholder="請輸入分店名稱" required>
+                                                    <div class="invalid-feedback">
+                                                        請輸入分店名稱
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row mb-2">
+                                            <div class="col-md-12">
+                                                <div class="form-group">
+                                                    <label for="branchPhone" class="form-label">聯絡電話</label>
+                                                    <input type="text" class="form-control" id="branchPhone"
+                                                           name="branchPhone" placeholder="請輸入聯絡電話">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row mb-2">
+                                            <div class="col-md-12">
+                                                <div class="form-group">
+                                                    <label for="branchRegion" class="form-label">
+                                                        區域分類 <span class="text-danger">*</span>
+                                                    </label>
+                                                    <select class="form-select" id="branchRegion"
+                                                            name="branchRegion" required>
+                                                        <option value="" selected disabled>請選擇區域分類</option>
+
+                                                    </select>
+                                                    <div class="invalid-feedback">
+                                                        請選擇區域分類
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row mb-2">
+                                            <div class="col-md-12">
+                                                <div class="form-group">
+                                                    <label for="branchAddress"
+                                                           class="form-label">分店地址</label>
+                                                    <input type="text" class="form-control"
+                                                           id="branchAddress" name="branchAddress"
+                                                           placeholder="請輸入分店地址">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row mb-2">
+                                            <div class="col-md-12">
+                                                <div class="form-group">
+                                                    <label for="googleMap" class="form-label">Google Map</label>
+                                                    <input type="text" class="form-control" id="googleMap"
+                                                           name="googleMap" placeholder="請輸入Google地圖連結">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- 營業時間設定區塊 -->
+                                        <div class="row mt-4 mb-2">
+                                            <div class="col-12">
+                                                <h5 class="border-bottom pb-2">
+                                                    <i class="fas fa-clock text-primary me-2"></i>營業時間設定
+                                                </h5>
+                                            </div>
+                                        </div>
+
+                                        <div id="openingHoursContainer">
+                                            <!-- 星期一到星期日的營業時間設定 -->
+                                            <div class="row mb-2 opening-hours-row">
+                                                <div class="col-md-3 d-flex align-items-center">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input weekday-visible" type="checkbox" id="monday-visible" checked>
+                                                        <label class="form-check-label fw-bold" for="monday-visible">星期一</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <input type="time" class="form-control opening-time" data-weekday="1" value="10:00">
+                                                </div>
+                                                <div class="col-md-1 d-flex align-items-center justify-content-center">
+                                                    <span>至</span>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <input type="time" class="form-control closing-time" data-weekday="1" value="21:00">
+                                                </div>
+                                            </div>
+
+                                            <div class="row mb-2 opening-hours-row">
+                                                <div class="col-md-3 d-flex align-items-center">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input weekday-visible" type="checkbox" id="tuesday-visible" checked>
+                                                        <label class="form-check-label fw-bold" for="tuesday-visible">星期二</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <input type="time" class="form-control opening-time" data-weekday="2" value="10:00">
+                                                </div>
+                                                <div class="col-md-1 d-flex align-items-center justify-content-center">
+                                                    <span>至</span>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <input type="time" class="form-control closing-time" data-weekday="2" value="21:00">
+                                                </div>
+                                            </div>
+
+                                            <div class="row mb-2 opening-hours-row">
+                                                <div class="col-md-3 d-flex align-items-center">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input weekday-visible" type="checkbox" id="wednesday-visible" checked>
+                                                        <label class="form-check-label fw-bold" for="wednesday-visible">星期三</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <input type="time" class="form-control opening-time" data-weekday="3" value="10:00">
+                                                </div>
+                                                <div class="col-md-1 d-flex align-items-center justify-content-center">
+                                                    <span>至</span>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <input type="time" class="form-control closing-time" data-weekday="3" value="21:00">
+                                                </div>
+                                            </div>
+
+                                            <div class="row mb-2 opening-hours-row">
+                                                <div class="col-md-3 d-flex align-items-center">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input weekday-visible" type="checkbox" id="thursday-visible" checked>
+                                                        <label class="form-check-label fw-bold" for="thursday-visible">星期四</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <input type="time" class="form-control opening-time" data-weekday="4" value="10:00">
+                                                </div>
+                                                <div class="col-md-1 d-flex align-items-center justify-content-center">
+                                                    <span>至</span>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <input type="time" class="form-control closing-time" data-weekday="4" value="21:00">
+                                                </div>
+                                            </div>
+
+                                            <div class="row mb-2 opening-hours-row">
+                                                <div class="col-md-3 d-flex align-items-center">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input weekday-visible" type="checkbox" id="friday-visible" checked>
+                                                        <label class="form-check-label fw-bold" for="friday-visible">星期五</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <input type="time" class="form-control opening-time" data-weekday="5" value="10:00">
+                                                </div>
+                                                <div class="col-md-1 d-flex align-items-center justify-content-center">
+                                                    <span>至</span>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <input type="time" class="form-control closing-time" data-weekday="5" value="21:00">
+                                                </div>
+                                            </div>
+
+                                            <div class="row mb-2 opening-hours-row">
+                                                <div class="col-md-3 d-flex align-items-center">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input weekday-visible" type="checkbox" id="saturday-visible" checked>
+                                                        <label class="form-check-label fw-bold" for="saturday-visible">星期六</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <input type="time" class="form-control opening-time" data-weekday="6" value="11:00">
+                                                </div>
+                                                <div class="col-md-1 d-flex align-items-center justify-content-center">
+                                                    <span>至</span>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <input type="time" class="form-control closing-time" data-weekday="6" value="22:00">
+                                                </div>
+                                            </div>
+
+                                            <div class="row mb-2 opening-hours-row">
+                                                <div class="col-md-3 d-flex align-items-center">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input weekday-visible" type="checkbox" id="sunday-visible" checked>
+                                                        <label class="form-check-label fw-bold" for="sunday-visible">星期日</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <input type="time" class="form-control opening-time" data-weekday="0" value="11:00">
+                                                </div>
+                                                <div class="col-md-1 d-flex align-items-center justify-content-center">
+                                                    <span>至</span>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <input type="time" class="form-control closing-time" data-weekday="0" value="22:00">
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="row mb-3 mt-2">
+                                            <div class="col-12">
+                                                <button type="button" class="btn btn-sm btn-outline-primary" id="copyToAllDays">
+                                                    <i class="fas fa-copy me-1"></i> 將星期一的時間套用到全部
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-success" id="copyToWeekdays">
+                                                    <i class="fas fa-copy me-1"></i> 將星期一的時間套用到平日
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-info" id="copyToWeekends">
+                                                    <i class="fas fa-copy me-1"></i> 將星期六的時間套用到週末
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-md-12">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="branchIsVisible" checked>
+                                                    <label class="form-check-label" for="branchIsVisible">
+                                                        顯示此分店
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                        <i class="fas fa-times me-1"></i>取消
+                                    </button>
+                                    <button type="button" class="btn btn-primary" id="saveBranchBtn">
+                                        <i class="fas fa-save me-1"></i>儲存分店資料
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 編輯分店Modal -->
+                    <div class="modal fade" id="editBranchModal" tabindex="-1"
+                         aria-labelledby="editBranchModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="editBranchModalLabel">
+                                        <i class="fas fa-edit text-primary me-2"></i>編輯分店
+                                    </h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                            aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <form id="editBranchForm">
+                                        <input type="hidden" id="edit-branchId">
+                                        <div class="row mb-2">
+                                            <div class="col-md-12">
+                                                <div class="form-group">
+                                                    <label for="edit-branchName" class="form-label">
+                                                        分店名稱 <span class="text-danger">*</span>
+                                                    </label>
+                                                    <input type="text" class="form-control" id="edit-branchName"
+                                                           name="branchName" placeholder="請輸入分店名稱" required>
+                                                    <div class="invalid-feedback">
+                                                        請輸入分店名稱
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row mb-2">
+                                            <div class="col-md-12">
+                                                <div class="form-group">
+                                                    <label for="edit-branchPhone" class="form-label">聯絡電話</label>
+                                                    <input type="text" class="form-control" id="edit-branchPhone"
+                                                           name="branchPhone" placeholder="請輸入聯絡電話">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row mb-2">
+                                            <div class="col-md-12">
+                                                <div class="form-group">
+                                                    <label for="edit-branchRegion" class="form-label">
+                                                        區域分類 <span class="text-danger">*</span>
+                                                    </label>
+                                                    <select class="form-select" id="edit-branchRegion"
+                                                            name="branchRegion" required>
+                                                        <option value="" selected disabled>請選擇區域分類</option>
+                                                        @foreach (var region in Model.RegionList)
+                                                        {
+                                                            <option value="@region.Id">@region.Name</option>
+                                                        }
+                                                    </select>
+                                                    <div class="invalid-feedback">
+                                                        請選擇區域分類
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row mb-2">
+                                            <div class="col-md-12">
+                                                <div class="form-group">
+                                                    <label for="edit-branchAddress"
+                                                           class="form-label">分店地址</label>
+                                                    <input type="text" class="form-control"
+                                                           id="edit-branchAddress" name="branchAddress"
+                                                           placeholder="請輸入分店地址">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row mb-2">
+                                            <div class="col-md-12">
+                                                <div class="form-group">
+                                                    <label for="edit-googleMap" class="form-label">Google Map</label>
+                                                    <input type="text" class="form-control" id="edit-googleMap"
+                                                           name="googleMap" placeholder="請輸入Google地圖連結">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- 營業時間設定區塊 -->
+                                        <div class="row mt-4 mb-2">
+                                            <div class="col-12">
+                                                <h5 class="border-bottom pb-2">
+                                                    <i class="fas fa-clock text-primary me-2"></i>營業時間設定
+                                                </h5>
+                                            </div>
+                                        </div>
+
+                                        <div id="editOpeningHoursContainer">
+                                            <!-- 星期一到星期日的營業時間設定 -->
+                                            <div class="row mb-2 edit-opening-hours-row">
+                                                <div class="col-md-3 d-flex align-items-center">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input edit-weekday-visible" type="checkbox" id="edit-monday-visible" checked>
+                                                        <label class="form-check-label fw-bold" for="edit-monday-visible">星期一</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <input type="time" class="form-control edit-opening-time" data-weekday="1" value="10:00">
+                                                </div>
+                                                <div class="col-md-1 d-flex align-items-center justify-content-center">
+                                                    <span>至</span>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <input type="time" class="form-control edit-closing-time" data-weekday="1" value="21:00">
+                                                </div>
+                                            </div>
+
+                                            <div class="row mb-2 edit-opening-hours-row">
+                                                <div class="col-md-3 d-flex align-items-center">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input edit-weekday-visible" type="checkbox" id="edit-tuesday-visible" checked>
+                                                        <label class="form-check-label fw-bold" for="edit-tuesday-visible">星期二</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <input type="time" class="form-control edit-opening-time" data-weekday="2" value="10:00">
+                                                </div>
+                                                <div class="col-md-1 d-flex align-items-center justify-content-center">
+                                                    <span>至</span>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <input type="time" class="form-control edit-closing-time" data-weekday="2" value="21:00">
+                                                </div>
+                                            </div>
+
+                                            <div class="row mb-2 edit-opening-hours-row">
+                                                <div class="col-md-3 d-flex align-items-center">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input edit-weekday-visible" type="checkbox" id="edit-wednesday-visible" checked>
+                                                        <label class="form-check-label fw-bold" for="edit-wednesday-visible">星期三</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <input type="time" class="form-control edit-opening-time" data-weekday="3" value="10:00">
+                                                </div>
+                                                <div class="col-md-1 d-flex align-items-center justify-content-center">
+                                                    <span>至</span>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <input type="time" class="form-control edit-closing-time" data-weekday="3" value="21:00">
+                                                </div>
+                                            </div>
+
+                                            <div class="row mb-2 edit-opening-hours-row">
+                                                <div class="col-md-3 d-flex align-items-center">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input edit-weekday-visible" type="checkbox" id="edit-thursday-visible" checked>
+                                                        <label class="form-check-label fw-bold" for="edit-thursday-visible">星期四</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <input type="time" class="form-control edit-opening-time" data-weekday="4" value="10:00">
+                                                </div>
+                                                <div class="col-md-1 d-flex align-items-center justify-content-center">
+                                                    <span>至</span>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <input type="time" class="form-control edit-closing-time" data-weekday="4" value="21:00">
+                                                </div>
+                                            </div>
+
+                                            <div class="row mb-2 edit-opening-hours-row">
+                                                <div class="col-md-3 d-flex align-items-center">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input edit-weekday-visible" type="checkbox" id="edit-friday-visible" checked>
+                                                        <label class="form-check-label fw-bold" for="edit-friday-visible">星期五</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <input type="time" class="form-control edit-opening-time" data-weekday="5" value="10:00">
+                                                </div>
+                                                <div class="col-md-1 d-flex align-items-center justify-content-center">
+                                                    <span>至</span>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <input type="time" class="form-control edit-closing-time" data-weekday="5" value="21:00">
+                                                </div>
+                                            </div>
+
+                                            <div class="row mb-2 edit-opening-hours-row">
+                                                <div class="col-md-3 d-flex align-items-center">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input edit-weekday-visible" type="checkbox" id="edit-saturday-visible" checked>
+                                                        <label class="form-check-label fw-bold" for="edit-saturday-visible">星期六</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <input type="time" class="form-control edit-opening-time" data-weekday="6" value="11:00">
+                                                </div>
+                                                <div class="col-md-1 d-flex align-items-center justify-content-center">
+                                                    <span>至</span>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <input type="time" class="form-control edit-closing-time" data-weekday="6" value="22:00">
+                                                </div>
+                                            </div>
+
+                                            <div class="row mb-2 edit-opening-hours-row">
+                                                <div class="col-md-3 d-flex align-items-center">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input edit-weekday-visible" type="checkbox" id="edit-sunday-visible" checked>
+                                                        <label class="form-check-label fw-bold" for="edit-sunday-visible">星期日</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <input type="time" class="form-control edit-opening-time" data-weekday="0" value="11:00">
+                                                </div>
+                                                <div class="col-md-1 d-flex align-items-center justify-content-center">
+                                                    <span>至</span>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <input type="time" class="form-control edit-closing-time" data-weekday="0" value="22:00">
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="row mb-3 mt-2">
+                                            <div class="col-12">
+                                                <button type="button" class="btn btn-sm btn-outline-primary" id="editCopyToAllDays">
+                                                    <i class="fas fa-copy me-1"></i> 將星期一的時間套用到全部
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-success" id="editCopyToWeekdays">
+                                                    <i class="fas fa-copy me-1"></i> 將星期一的時間套用到平日
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-info" id="editCopyToWeekends">
+                                                    <i class="fas fa-copy me-1"></i> 將星期六的時間套用到週末
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div class="row mb-3">
+                                            <div class="col-md-12">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="edit-branchIsVisible">
+                                                    <label class="form-check-label" for="edit-branchIsVisible">
+                                                        顯示此分店
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                        <i class="fas fa-times me-1"></i>取消
+                                    </button>
+                                    <button type="button" class="btn btn-primary" id="updateBranchBtn">
+                                        <i class="fas fa-save me-1"></i>儲存變更
+                                    </button>
+                                    <button type="button" class="btn btn-danger" id="deleteBranchBtn">
+                                        <i class="fas fa-trash me-1"></i>刪除
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+        <!--   Core JS Files   -->
+        <script src="../assets/js/core/jquery-3.7.1.min.js"></script>
+        <script src="../assets/js/core/popper.min.js"></script>
+        <script src="../assets/js/core/bootstrap.min.js"></script>
+
+        <!-- Sweet Alert -->
+        <script src="../assets/js/plugin/sweetalert/sweetalert.min.js"></script>
+
+        <!-- jQuery Scrollbar -->
+        <script src="../assets/js/plugin/jquery-scrollbar/jquery.scrollbar.min.js"></script>
+        <!-- Datatables -->
+        <script src="../assets/js/plugin/datatables/datatables.min.js"></script>
+        <!-- Datatables 中文語言設定 -->
+        <script src="../assets/js/plugin/datatables/datatables-chinese.js"></script>
+
+    <script>
+        // 全局變數
+        let branchesTable;
+        let branchList = [];
+        let selectedBranches = [];
+
+        $(document).ready(function () {
+            // 從後端預載的資料初始化分店列表
+            branchList = @Html.Raw(Json.Serialize(Model.BranchList));
+
+            // 初始化 DataTable (使用已渲染的 HTML 資料)
+            initBranchTableWithPreloadedData();
+
+            // 事件綁定
+            bindEvents();
+
+            // 綁定表格中按鈕事件
+            bindTableButtonEvents();
+        });
+
+        // 初始化分店表格 (使用已渲染的 HTML 資料)
+        function initBranchTableWithPreloadedData() {
+            branchesTable = $('#branch-datatables').DataTable({
+                language: datatableLanguage, // 使用中文語言設定
+                responsive: true,
+                searching: true,
+                ordering: true,
+                // 不需要 columns 定義，因為已經渲染了 HTML
+                // DataTables 會使用已存在的 HTML 結構
+            });
+        }
+
+        // 重新載入分店數據 (用於新增/編輯/刪除後更新資料)
+        function refreshBranchesData() {
+            $.ajax({
+                url: '/api/BranchsApi',
+                type: 'GET',
+                dataType: 'json',
+                success: function (data) {
+                    branchList = data;
+
+                    // 清空表格數據並重新加載
+                    branchesTable.clear();
+
+                    // 建立新的表格行
+                    data.forEach(branch => {
+                        branchesTable.row.add([
+                            `<input type="checkbox" class="branch-checkbox" data-id="${branch.id}" />`,
+                            branch.id,
+                            branch.name,
+                            branch.phone || '未設定',
+                            branch.address || '未設定',
+                            `<button class="btn btn-sm btn-info view-hours-btn" data-id="${branch.id}">
+                                <i class="fas fa-clock"></i> 查看營業時間
+                             </button>`,
+                            branch.isVisible
+                                ? '<span class="badge bg-success">公開</span>'
+                                : '<span class="badge bg-secondary">隱藏</span>',
+                            `<div class="d-flex">
+                                <button class="btn btn-sm btn-warning me-1 edit-branch-btn" data-id="${branch.id}">
+                                    <i class="fas fa-edit"></i> 編輯
+                                </button>
+                                <button class="btn btn-sm btn-danger delete-branch-btn" data-id="${branch.id}">
+                                    <i class="fas fa-trash"></i> 刪除
+                                </button>
+                             </div>`
+                        ]).draw(false);
+                    });
+
+                    // 綁定事件到新加載的按鈕
+                    bindTableButtonEvents();
+                },
+                error: function (xhr) {
+                    showErrorMessage('載入分店數據失敗', xhr.responseText);
+                }
+            });
+        }
+
+        // 綁定事件 (其他事件處理函數與原始程式碼相同)
+        function bindEvents() {
+            // 全選/取消全選
+            $('#branch-check-all').on('change', function() {
+                const isChecked = $(this).prop('checked');
+                $('.branch-checkbox').prop('checked', isChecked);
+
+                // 更新已選擇的分店列表
+                selectedBranches = [];
+                if (isChecked) {
+                    $('.branch-checkbox').each(function() {
+                        selectedBranches.push($(this).data('id'));
+                    });
+                }
+
+                // 更新批量刪除按鈕狀態
+                updateBatchDeleteButtonState();
+            });
+
+            // 其他事件處理保持不變
+            // ...
+        }
+
+        // 綁定表格按鈕事件
+        function bindTableButtonEvents() {
+            // 查看營業時間按鈕
+            $('.view-hours-btn').off('click').on('click', function() {
+                const branchId = $(this).data('id');
+                const branch = branchList.find(b => b.id === branchId);
+
+                if (branch) {
+                    showOpeningHoursModal(branch);
+                }
+            });
+
+                        // 編輯分店按鈕
+            $('.edit-branch-btn').off('click').on('click', function() {
+                const branchId = $(this).data('id');
+
+                // 在編輯前先載入營業時間資料
+                $.ajax({
+                    url: `/api/BranchsApi/${branchId}/OpeningHours`,
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(openingHours) {
+                        // 尋找分店資料
+                        const branch = branchList.find(b => b.id === branchId);
+                        if (branch) {
+                            // 將營業時間資料附加到分店物件
+                            branch.openingHours = openingHours;
+                            // 顯示編輯 Modal
+                            showEditBranchModal(branch);
+                        }
+                    },
+                    error: function(xhr) {
+                        showErrorMessage('載入營業時間失敗', xhr.responseText);
+                    }
+                });
+            });
+
+            // 顯示編輯分店 Modal
+            function showEditBranchModal(branch) {
+                $('#edit-branchId').val(branch.id);
+                $('#edit-branchName').val(branch.name);
+                $('#edit-branchPhone').val(branch.phone || '');
+                $('#edit-branchAddress').val(branch.address || '');
+                $('#edit-branchRegion').val(branch.regionId);
+                $('#edit-googleMap').val(branch.mapUrl || '');
+                $('#edit-branchIsVisible').prop('checked', branch.isVisible);
+
+                // 填充營業時間
+                if (branch.openingHours && branch.openingHours.length > 0) {
+                    for (let i = 0; i <= 6; i++) {
+                        const openTime = branch.openingHours.find(h => h.weekday === i);
+                        const isOpen = openTime && openTime.isOpen;
+
+                        $(`#edit-${getWeekdayName(i)}-visible`).prop('checked', isOpen);
+
+                        if (isOpen) {
+                            $(`.edit-opening-time[data-weekday="${i}"]`).val(formatTimeInput(openTime.openTime));
+                            $(`.edit-closing-time[data-weekday="${i}"]`).val(formatTimeInput(openTime.closeTime));
+                        } else {
+                            $(`.edit-opening-time[data-weekday="${i}"]`).val('');
+                            $(`.edit-closing-time[data-weekday="${i}"]`).val('');
+                        }
+                    }
+                }
+
+                // 顯示 Modal
+                new bootstrap.Modal(document.getElementById('editBranchModal')).show();
+            }
+
+            // 刪除分店按鈕
+            $('.delete-branch-btn').off('click').on('click', function() {
+                const branchId = $(this).data('id');
+                const branch = branchList.find(b => b.id === branchId);
+
+                if (branch) {
+                    confirmDeleteBranch(branch);
+                }
+            });
+
+            // 分店選擇框變更
+            $('.branch-checkbox').off('change').on('change', function() {
+                const branchId = $(this).data('id');
+
+                if ($(this).prop('checked')) {
+                    if (!selectedBranches.includes(branchId)) {
+                        selectedBranches.push(branchId);
+                    }
+                } else {
+                    const index = selectedBranches.indexOf(branchId);
+                    if (index !== -1) {
+                        selectedBranches.splice(index, 1);
+                    }
+
+                    // 如果有一個未選擇，則取消全選
+                    $('#branch-check-all').prop('checked', false);
+                }
+
+                // 更新批量刪除按鈕狀態
+                updateBatchDeleteButtonState();
+            });
+        }
+
+        // 儲存新分店
+        function saveBranch() {
+            // 收集表單數據
+            const branchData = {
+                name: $('#branchName').val(),
+                phone: $('#branchPhone').val(),
+                address: $('#branchAddress').val(),
+                mapUrl: $('#googleMap').val(),
+                regionId: parseInt($('#branchRegion').val()),
+                isVisible: $('#branchIsVisible').prop('checked'),
+                openingHours: collectOpeningHours('new')
+            };
+
+            $.ajax({
+                url: '/api/BranchsApi',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(branchData),
+                success: function() {
+                    // 關閉 Modal
+                    $('#addBranchModal').modal('hide');
+
+                    // 重置表單
+                    $('#addBranchForm')[0].reset();
+
+                    // 顯示成功訊息
+                    showSuccessMessage('分店新增成功！');
+
+                    // 重新載入分店數據
+                    refreshBranchesData();
+                },
+                error: function(xhr) {
+                    showErrorMessage('新增分店失敗', xhr.responseText);
+                }
+            });
+        }
+
+        // 更新分店
+        function updateBranch() {
+            // 收集表單數據
+            const branchId = $('#edit-branchId').val();
+            const branchData = {
+                id: parseInt(branchId),
+                name: $('#edit-branchName').val(),
+                phone: $('#edit-branchPhone').val(),
+                address: $('#edit-branchAddress').val(),
+                mapUrl: $('#edit-googleMap').val(),
+                regionId: parseInt($('#edit-branchRegion').val()),
+                isVisible: $('#edit-branchIsVisible').prop('checked'),
+                openingHours: collectOpeningHours('edit')
+            };
+
+            $.ajax({
+                url: `/api/BranchsApi/${branchId}`,
+                type: 'PUT',
+                contentType: 'application/json',
+                data: JSON.stringify(branchData),
+                success: function() {
+                    // 關閉 Modal
+                    $('#editBranchModal').modal('hide');
+
+                    // 顯示成功訊息
+                    showSuccessMessage('分店更新成功！');
+
+                    // 重新載入分店數據
+                    refreshBranchesData();
+                },
+                error: function(xhr) {
+                    showErrorMessage('更新分店失敗', xhr.responseText);
+                }
+            });
+        }
+
+                    // 刪除分店按鈕
+            $('.delete-branch-btn').off('click').on('click', function() {
+                const branchId = $(this).data('id');
+                const branch = branchList.find(b => b.id === branchId);
+
+                if (branch) {
+                    confirmDeleteBranch(branch);
+                }
+            });
+
+            // 確認刪除分店
+            function confirmDeleteBranch(branch) {
+                swal({
+                    title: '確定要刪除此分店嗎？',
+                    text: `您將刪除分店「${branch.name}」，此操作無法復原！`,
+                    icon: 'warning',
+                    buttons: {
+                        cancel: {
+                            text: '取消',
+                            visible: true,
+                            className: 'btn btn-secondary'
+                        },
+                        confirm: {
+                            text: '確定刪除',
+                            className: 'btn btn-danger'
+                        }
+                    }
+                }).then((willDelete) => {
+                    if (willDelete) {
+                        deleteBranch(branch.id);
+                    }
+                });
+            }
+
+            // 刪除分店
+            function deleteBranch(branchId) {
+                $.ajax({
+                    url: `/api/BranchsApi/${branchId}`,
+                    type: 'DELETE',
+                    success: function() {
+                        // 如果有開啟編輯視窗，則關閉
+                        const editModal = bootstrap.Modal.getInstance(document.getElementById('editBranchModal'));
+                        if (editModal) editModal.hide();
+
+                        // 顯示成功訊息
+                        showSuccessMessage('分店刪除成功！');
+
+                        // 重新載入分店數據
+                        branchesTable.ajax.reload();
+                    },
+                    error: function(xhr) {
+                        showErrorMessage('刪除分店失敗', xhr.responseText);
+                    }
+                });
+            }
+
+                  // 批量刪除分店
+            function batchDeleteBranches() {
+                // 保存當前選擇的分店數量，因為成功後會清空選擇列表
+                const selectedCount = selectedBranches.length;
+
+                $.ajax({
+                    url: '/api/BranchsApi/BatchDelete',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(selectedBranches),
+                    success: function() {
+                        // 清空選擇列表
+                        selectedBranches = [];
+                        $('#branch-check-all').prop('checked', false);
+
+                        // 顯示成功訊息
+                        showSuccessMessage(`已成功刪除 ${selectedCount} 家分店！`);
+
+                        // 重新載入分店數據
+                        branchesTable.ajax.reload();
+
+                        // 更新批量刪除按鈕狀態
+                        updateBatchDeleteButtonState();
+                    },
+                    error: function(xhr) {
+                        showErrorMessage('批量刪除分店失敗', xhr.responseText);
+                    }
+                });
+            }
+
+        // 儲存新分店
+        function saveBranch() {
+            // 收集表單數據
+            const branchData = {
+                name: $('#branchName').val(),
+                phone: $('#branchPhone').val(),
+                address: $('#branchAddress').val(),
+                mapUrl: $('#googleMap').val(),
+                regionId: parseInt($('#branchRegion').val()),
+                isVisible: $('#branchIsVisible').prop('checked'),
+                openingHours: collectOpeningHours('new')
+            };
+
+            $.ajax({
+                url: '/api/BranchsApi',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(branchData),
+                success: function() {
+                    // 關閉 Modal
+                    $('#addBranchModal').modal('hide');
+
+                    // 重置表單
+                    $('#addBranchForm')[0].reset();
+
+                    // 顯示成功訊息
+                    showSuccessMessage('分店新增成功！');
+
+                    // 重新載入分店數據
+                    loadBranchesData();
+                },
+                error: function(xhr) {
+                    showErrorMessage('新增分店失敗', xhr.responseText);
+                }
+            });
+        }
+
+        // 更新分店
+        function updateBranch() {
+            // 收集表單數據
+            const branchId = $('#edit-branchId').val();
+            const branchData = {
+                id: parseInt(branchId),
+                name: $('#edit-branchName').val(),
+                phone: $('#edit-branchPhone').val(),
+                address: $('#edit-branchAddress').val(),
+                mapUrl: $('#edit-googleMap').val(),
+                regionId: parseInt($('#edit-branchRegion').val()),
+                isVisible: $('#edit-branchIsVisible').prop('checked'),
+                openingHours: collectOpeningHours('edit')
+            };
+
+            $.ajax({
+                url: `/api/BranchsApi/${branchId}`,
+                type: 'PUT',
+                contentType: 'application/json',
+                data: JSON.stringify(branchData),
+                success: function() {
+                    // 關閉 Modal
+                    $('#editBranchModal').modal('hide');
+
+                    // 顯示成功訊息
+                    showSuccessMessage('分店更新成功！');
+
+                    // 重新載入分店數據
+                    loadBranchesData();
+                },
+                error: function(xhr) {
+                    showErrorMessage('更新分店失敗', xhr.responseText);
+                }
+            });
+        }
+
+        // 收集營業時間數據
+        function collectOpeningHours(mode) {
+            const hours = [];
+            const prefix = mode === 'edit' ? 'edit-' : '';
+            const timeClass = mode === 'edit' ? 'edit-' : '';
+
+            for (let i = 0; i <= 6; i++) {
+                const isOpen = $(`#${prefix}${getWeekdayName(i)}-visible`).prop('checked');
+                const openTime = $(`.${timeClass}opening-time[data-weekday="${i}"]`).val();
+                const closeTime = $(`.${timeClass}closing-time[data-weekday="${i}"]`).val();
+
+                hours.push({
+                    weekday: i,
+                    openTime: isOpen ? openTime : null,
+                    closeTime: isOpen ? closeTime : null
+                });
+            }
+
+            return hours;
+        }
+
+        // 複製營業時間 (新增表單)
+        function copyOpeningHours(openTime, closeTime, type) {
+            let weekdays;
+
+            if (type === 'all') {
+                weekdays = [0, 1, 2, 3, 4, 5, 6]; // 所有日子
+            } else if (type === 'weekdays') {
+                weekdays = [1, 2, 3, 4, 5]; // 平日
+            } else if (type === 'weekends') {
+                weekdays = [0, 6]; // 週末
+            }
+
+            weekdays.forEach(weekday => {
+                $(`.opening-time[data-weekday="${weekday}"]`).val(openTime);
+                $(`.closing-time[data-weekday="${weekday}"]`).val(closeTime);
+            });
+        }
+
+        // 複製營業時間 (編輯表單)
+        function copyEditOpeningHours(openTime, closeTime, type) {
+            let weekdays;
+
+            if (type === 'all') {
+                weekdays = [0, 1, 2, 3, 4, 5, 6]; // 所有日子
+            } else if (type === 'weekdays') {
+                weekdays = [1, 2, 3, 4, 5]; // 平日
+            } else if (type === 'weekends') {
+                weekdays = [0, 6]; // 週末
+            }
+
+            weekdays.forEach(weekday => {
+                $(`.edit-opening-time[data-weekday="${weekday}"]`).val(openTime);
+                $(`.edit-closing-time[data-weekday="${weekday}"]`).val(closeTime);
+            });
+        }
+
+        // 驗證分店表單 (新增)
+        function validateBranchForm() {
+            const form = $('#addBranchForm')[0];
+
+            if (!form.checkValidity()) {
+                $(form).addClass('was-validated');
+                return false;
+            }
+
+            return true;
+        }
+
+        // 驗證分店表單 (編輯)
+        function validateEditBranchForm() {
+            const form = $('#editBranchForm')[0];
+
+            if (!form.checkValidity()) {
+                $(form).addClass('was-validated');
+                return false;
+            }
+
+            return true;
+        }
+
+        // 更新批量刪除按鈕狀態
+        function updateBatchDeleteButtonState() {
+            if (selectedBranches.length > 0) {
+                $('#batch-delete-btn').prop('disabled', false);
+            } else {
+                $('#batch-delete-btn').prop('disabled', true);
+            }
+        }
+
+        // 格式化時間顯示
+        function formatTime(timeString) {
+            if (!timeString) return '';
+            return timeString.substring(0, 5); // HH:mm
+        }
+
+        // 格式化時間輸入
+        function formatTimeInput(timeString) {
+            if (!timeString) return '';
+            return timeString.substring(0, 5); // HH:mm
+        }
+
+        // 取得星期名稱 (用於 ID)
+        function getWeekdayName(weekday) {
+            const weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            return weekdays[weekday];
+        }
+
+        // 顯示成功訊息
+        function showSuccessMessage(message) {
+            $('#branch-success-text').text(message);
+            $('#branch-success-message').fadeIn().delay(3000).fadeOut();
+        }
+
+        // 顯示錯誤訊息
+        function showErrorMessage(title, message) {
+            swal({
+                title: title,
+                text: message,
+                icon: 'error'
+            });
+        }
+                // 載入區域數據
+        function loadRegionsData() {
+            $.ajax({
+                url: '/api/BranchsApi/Regions',
+                type: 'GET',
+                dataType: 'json',
+                success: function (data) {
+                    // 填充篩選器下拉選單
+                    const regionFilter = $('#branch-region-filter');
+                    regionFilter.find('option:not(:first)').remove();
+
+                    // 填充新增表單下拉選單
+                    const regionSelect = $('#branchRegion');
+                    regionSelect.find('option:not(:first)').remove();
+
+                    // 填充編輯表單下拉選單
+                    const editRegionSelect = $('#edit-branchRegion');
+                    editRegionSelect.find('option:not(:first)').remove();
+
+                    // 添加選項
+                    data.forEach(region => {
+                        regionFilter.append(`<option value="${region.name}">${region.name}</option>`);
+                        regionSelect.append(`<option value="${region.id}">${region.name}</option>`);
+                        editRegionSelect.append(`<option value="${region.id}">${region.name}</option>`);
+                    });
+                },
+                error: function (xhr) {
+                    showErrorMessage('載入區域數據失敗', xhr.responseText);
+                }
+            });
+        }
+    </script>
+    }

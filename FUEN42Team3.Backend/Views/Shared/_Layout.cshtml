@@ -1,0 +1,517 @@
+﻿@using System.Security.Claims
+@{
+    // 獲取當前登入用戶的帳號
+    var accountName = User.Identity?.IsAuthenticated == true ? User.Identity.Name : "未登入";
+
+    // 從Claims中取得UserName作為顯示名稱
+    var displayName = User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.GivenName)?.Value ??
+    accountName;
+}
+<!DOCTYPE html>
+<html lang="zh-tw">
+
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta charset="utf-8" />
+    <title>@ViewData["Title"]</title>
+    <meta content="width=device-width, initial-scale=1.0, shrink-to-fit=no" name="viewport" />
+    <link rel="icon" href="~/assets/img/FUEN42/GhostToys_Icon_Cute.ico" type="image/x-icon" />
+    <!-- Font Awesome CDN as fallback 修復icon因版本失效問題-->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+    <!-- 字型和icon -->
+    <script src="~/assets/js/plugin/webfont/webfont.min.js"></script>
+    <!-- CSS樣式路徑 -->
+    <link rel="stylesheet" href="~/assets/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/assets/css/plugins.min.css" />
+    <link rel="stylesheet" href="~/assets/css/kaiadmin.min.css" />
+    @RenderSection("Styles", required: false)
+
+</head>
+
+<body>
+    <div class="wrapper">
+        <!-- 側邊攔 -->
+        <div class="sidebar" data-background-color="dark">
+            <div class="sidebar-logo">
+                <!-- Logo開始-->
+                <div class="logo-header" data-background-color="dark">
+                    <a href="@Url.Action("Index", "Home")" class="logo">
+                        <img src="~/assets/img/FUEN42/GhostToys_Logo_Long_Cute.png" alt="navbar brand"
+                            class="navbar-brand" height="40" />
+                    </a>
+                    <div class="nav-toggle">
+                        <button class="btn btn-toggle toggle-sidebar">
+                            <i class="gg-menu-right"></i>
+                        </button>
+                        <button class="btn btn-toggle sidenav-toggler">
+                            <i class="gg-menu-left"></i>
+                        </button>
+                    </div>
+                    <button class="topbar-toggler more">
+                        <i class="gg-more-vertical-alt"></i>
+                    </button>
+                </div>
+                <!-- Logo結束 -->
+            </div>
+            <!-- 靜靜的開始-->
+            <div class="sidebar-wrapper scrollbar scrollbar-inner">
+                <div class="sidebar-content">
+                    <ul class="nav nav-secondary">
+                        <li class="nav-item submenu @(Html.IsActive("Home"))">
+                            <a href="@Url.Action("Index", "Home")"
+                                aria-expanded="@(Html.IsActive("Home") != "" ? "true" : "false")">
+                                <i class="fas fa-chart-line"></i>
+                                <p>Dashboard 儀錶板</p>
+                            </a>
+                        </li>
+                        <li class="nav-item submenu @(Html.IsActive("Branchs"))">
+                            <a href="@Url.Action("Index", "Branchs")"
+                                aria-expanded="@(Html.IsActive("Branchs") != "" ? "true" : "false")">
+                                <i class="fas fa-store-alt"></i>
+                                <p>Branchs 分店資訊</p>
+                            </a>
+                        </li>
+                        <li class="nav-section">
+                            <span class="sidebar-mini-icon">
+                            </span>
+                            <h4 class="text-section">廣告管理</h4>
+                        </li>
+                        <li class="nav-item submenu @(Html.IsActive("Ads"))">
+                            <a class="@(Html.IsActive("Ads") == "" ? "collapsed" : "")" data-bs-toggle="collapse"
+                                href="#ads" aria-expanded="@(Html.IsActive("Ads") != "" ? "true" : "false")">
+                                <i class="fas fa-tag"></i>
+                                <p>Ads 廣告</p>
+                                <span class="caret"></span>
+                            </a>
+                            <div class="collapse @(Html.IsExpanded("Ads"))" id="ads">
+                                <ul class="nav nav-collapse">
+                                    <li class="@(Html.IsActive("Ads", "carousel"))">
+                                        <a href="@Url.Action("carousel", "Ads")">
+                                            <span class="sub-item">主輪播</span>
+                                        </a>
+                                    </li>
+                                    <li class="@(Html.IsActive("Ads", "popup"))">
+                                        <a href="@Url.Action("popup", "Ads")">
+                                            <span class="sub-item">彈窗通知</span>
+                                        </a>
+                                    </li>
+                                    <li class="@(Html.IsActive("Ads", "marquee"))">
+                                        <a href="@Url.Action("marquee", "Ads")">
+                                            <span class="sub-item">跑馬燈</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </li>
+                        <li class="nav-section">
+                            <span class="sidebar-mini-icon">
+                            </span>
+                            <h4 class="text-section">使用者</h4>
+                        </li>
+                        <li class="nav-item submenu @(Html.IsActive("Members"))">
+                            <a class="@(Html.IsActive("Members") == "" ? "collapsed" : "")" data-bs-toggle="collapse"
+                                href="#member" aria-expanded="@(Html.IsActive("Members") != "" ? "true" : "false")">
+                                <i class="fas fa-user"></i>
+                                <p>Member 會員</p>
+                                <span class="caret"></span>
+                            </a>
+                            <div class="collapse @(Html.IsExpanded("Members"))" id="member">
+                                <ul class="nav nav-collapse">
+                                    <li class="@(Html.IsActive("Members", "Index"))">
+                                        <a href="@Url.Action("Index", "Members")">
+                                            <span class="sub-item">會員列表</span>
+                                        </a>
+                                    </li>
+                                    <li class="@(Html.IsActive("Members", "Verification"))">
+                                        <a href="@Url.Action("Verification", "Members")">
+                                            <span class="sub-item">驗證管理</span>
+                                        </a>
+                                    </li>
+                                    <li class="@(Html.IsActive("Members", "Points"))">
+                                        <a href="@Url.Action("Points", "Members")">
+                                            <span class="sub-item">會員點數</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </li>
+                        <li class="nav-item submenu @(Html.IsActive("Users"))">
+                            <a class="@(Html.IsActive("Users") == "" ? "collapsed" : "")" data-bs-toggle="collapse"
+                                href="#user" aria-expanded="@(Html.IsActive("Users") != "" ? "true" : "false")">
+                                <i class="fas fa-user-cog"></i>
+                                <p>Admin 管理員</p>
+                                <span class="caret"></span>
+                            </a>
+                            <div class="collapse @(Html.IsExpanded("Users"))" id="user">
+                                <ul class="nav nav-collapse">
+                                    <li class="@(Html.IsActive("Users", "Index"))">
+                                        <a href="@Url.Action("Index", "Users")">
+                                            <span class="sub-item">使用者列表</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </li>
+                        <!-- 最新消息 -->
+                        <li class="nav-section">
+                            <span class="sidebar-mini-icon">
+                            </span>
+                            <h4 class="text-section">點數與最新消息</h4>
+                        </li>
+                        <li class="nav-item submenu @(Html.IsActive("PointsAdmin"))">
+                            <a href="@Url.Action("RulesPage", "PointsAdmin")" aria-expanded="false">
+                                <i class="fas fa-coins"></i>
+                                <p>Points 規則</p>
+                            </a>
+                        </li>
+                        <li class="nav-item submenu @(Html.IsActive("GiftRulesAdmin"))">
+                            <a href="@Url.Action("Index", "GiftRulesAdmin")" aria-expanded="false">
+                                <i class="fas fa-gift"></i>
+                                <p>Gift 贈品規則</p>
+                            </a>
+                        </li>
+
+                        <li class="nav-item submenu @(Html.IsActive("News"))">
+                            <a class="@(Html.IsActive("News") == "" ? "collapsed" : "")" data-bs-toggle="collapse"
+                                href="#news" aria-expanded="@(Html.IsActive("News") != "" ? "true" : "false")">
+                                <i class="fas fa-bullhorn"></i>
+                                <p>News 最新消息</p>
+                                <span class="caret"></span>
+                            </a>
+                            <div class="collapse @(Html.IsExpanded("News"))" id="news">
+                                <ul class="nav nav-collapse">
+                                    <li class="@(Html.IsActive("News", "Index"))">
+                                        <a href="@Url.Action("Index", "News")">
+                                            <span class="sub-item">公告管理</span>
+                                        </a>
+                                    </li>
+                                    <li class="@(Html.IsActive("News", "Create"))">
+                                        <a href="@Url.Action("Create", "News")">
+                                            <span class="sub-item">新增公告</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </li>
+                        <li class="nav-section">
+                            <span class="sidebar-mini-icon">
+                            </span>
+                            <h4 class="text-section">活動與課程</h4>
+                        </li>
+                        <li class="nav-item submenu @(Html.IsActive("ChatAdmin"))">
+                            <a href="@Url.Action("Console", "ChatAdmin")" aria-expanded="false">
+                                <i class="fas fa-headset"></i>
+                                <p>Chat 客服台</p>
+                            </a>
+                        </li>
+                        <li class="nav-item submenu @(Html.IsActive("Events"))">
+                            <a class="@(Html.IsActive("Events") == "" ? "collapsed" : "")" data-bs-toggle="collapse"
+                                href="#events" aria-expanded="@(Html.IsActive("Events") != "" ? "true" : "false")">
+                                <i class="fas fa-calendar-alt"></i>
+                                <p>Event 活動</p>
+                                <span class="caret"></span>
+                            </a>
+                            <div class="collapse @(Html.IsExpanded("Events"))" id="events">
+                                <ul class="nav nav-collapse">
+                                    <li class="@(Html.IsActive("Events", "List"))">
+                                        <a href="@Url.Action("List", "Events")">
+                                            <span class="sub-item">活動管理</span>
+                                        </a>
+                                    </li>
+                                    <li class="@(Html.IsActive("Events", "Create"))">
+                                        <a href="@Url.Action("Create", "Events")">
+                                            <span class="sub-item">新增活動</span>
+                                        </a>
+                                    </li>
+                                    <li class="@(Html.IsActive("Events", "RegisterList"))">
+                                        <a href="@Url.Action("RegisterList", "Events")">
+                                            <span class="sub-item">報名清單</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </li>
+                        <!-- 靜靜的結束-->
+                        <!-- 蓉蓉的開始-->
+                        <li class="nav-section">
+                            <span class="sidebar-mini-icon">
+                            </span>
+                            <h4 class="text-section">商品</h4>
+                        </li>
+                        <li class="nav-item submenu @(Html.IsActive("Products"))">
+                            <a class="@(Html.IsActive("Products") == "" ? "collapsed" : "")" data-bs-toggle="collapse"
+                                href="#product" aria-expanded="@(Html.IsActive("Products") != "" ? "true" : "false")">
+                                <i class="fas fa-box"></i>
+                                <p>Product 商品</p>
+                                <span class="caret"></span>
+                            </a>
+                            <div class="collapse @(Html.IsExpanded("Products"))" id="product">
+                                <ul class="nav nav-collapse">
+                                    <li class="@(Html.IsActive("Products", "List"))">
+                                        <a href="@Url.Action("List", "Products")">
+                                            <span class="sub-item">商品列表</span>
+                                        </a>
+                                    </li>
+                                    <li class="@(Html.IsActive("Products", "CategoryList"))">
+                                        <a href="@Url.Action("CategoryList", "Products")">
+                                            <span class="sub-item">商品分類</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </li>
+                        <!-- 蓉蓉的結束-->
+                        <!-- 芳芳的開始-->
+                        <li class="nav-section">
+                            <span class="sidebar-mini-icon">
+                            </span>
+                            <h4 class="text-section">訂單與客製化</h4>
+                        </li>
+                        <li class="nav-item submenu @(Html.IsActive("Orders"))">
+                            <a class="@(Html.IsActive("Orders") == "" ? "collapsed" : "")" data-bs-toggle="collapse"
+                                href="#order" aria-expanded="@(Html.IsActive("Orders") != "" ? "true" : "false")">
+                                <i class="fas fa-box"></i>
+                                <p>Order 訂單</p>
+                                <span class="caret"></span>
+                            </a>
+                            <div class="collapse @(Html.IsExpanded("Orders"))" id="order">
+                                <ul class="nav nav-collapse">
+                                    <li class="@(Html.IsActive("Orders", "Order"))">
+                                        <a href="@Url.Action("Order", "Orders")">
+                                            <span class="sub-item">訂單管理</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </li>
+                        <li class="nav-item">
+                            <a data-bs-toggle="collapse" href="#customization">
+                                <i class="fas fa-layer-group"></i>
+                                <p>客製化管理</p>
+                                <span class="caret"></span>
+                            </a>
+                            <div class="collapse" id="customization">
+                                <ul class="nav nav-collapse">
+                                    <li>
+                                        <a href="#">
+                                            <span class="sub-item">A</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="#">
+                                            <span class="sub-item">B</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="#">
+                                            <span class="sub-item">C</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </li>
+                        <!-- 芳芳的結束-->
+                        <!-- 超級威的開始-->
+                        <li class="nav-section">
+                            <span class="sidebar-mini-icon">
+                            </span>
+                            <h4 class="text-section">討論區</h4>
+                        </li>
+                        <li class="nav-item submenu @(Html.IsActive("Forum"))">
+                            <a class="@(Html.IsActive("Forum") == "" ? "collapsed" : "")" data-bs-toggle="collapse"
+                                href="#forum" aria-expanded="@(Html.IsActive("Forum") != "" ? "true" : "false")">
+                                <i class="fab fa-snapchat-ghost"></i>
+                                <p>Forum 討論區</p>
+                                <span class="caret"></span>
+                            </a>
+                            <div class="collapse @(Html.IsExpanded("Forum"))" id="forum">
+                                <ul class="nav nav-collapse">
+                                    <li class="@(Html.IsActive("Forum", "posts"))">
+                                        <a href="@Url.Action("Posts", "Forum")">
+                                            <span class="sub-item">文章管理</span>
+                                        </a>
+                                    </li>
+                                    <li class="@(Html.IsActive("Forum", "comments"))">
+                                        <a href="@Url.Action("comments", "Forum")">
+                                            <span class="sub-item">留言管理</span>
+                                        </a>
+                                    </li>
+                                    <li class="@(Html.IsActive("Forum", "postReports"))">
+                                        <a href="@Url.Action("PostReports", "Forum")">
+                                            <span class="sub-item">文章檢舉</span>
+                                        </a>
+                                    </li>
+                                    <li class="@(Html.IsActive("Forum", "commentReports"))">
+                                        <a href="@Url.Action("CommentReports", "Forum")">
+                                            <span class="sub-item">留言檢舉</span>
+                                        </a>
+                                    </li>
+                                    <li class="@(Html.IsActive("Forum", "punishments"))">
+                                        <a href="@Url.Action("Punishments", "Forum")">
+                                            <span class="sub-item">懲處管理</span>
+                                        </a>
+                                    </li>
+                                    <li class="@(Html.IsActive("Forum", "announcements"))">
+                                        <a href="@Url.Action("Announcements", "Forum")">
+                                            <span class="sub-item">公告管理</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </li>
+                        <!-- 超級威的結束-->
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <!-- End Sidebar -->
+
+        <div class="main-panel">
+            <div class="main-header">
+                <div class="main-header-logo">
+                    <!-- Logo Header -->
+                    <div class="logo-header" data-background-color="dark">
+                        <a href="starter-template.html" class="logo">
+                            <img src="~/assets/img/FUEN42/GhostToys_Logo_Long_Cute.png" alt="navbar brand"
+                                class="navbar-brand" height="40" />
+                        </a>
+                        <div class="nav-toggle">
+                            <button class="btn btn-toggle toggle-sidebar">
+                                <i class="gg-menu-right"></i>
+                            </button>
+                            <button class="btn btn-toggle sidenav-toggler">
+                                <i class="gg-menu-left"></i>
+                            </button>
+                        </div>
+                        <button class="topbar-toggler more">
+                            <i class="gg-more-vertical-alt"></i>
+                        </button>
+                    </div>
+                    <!-- End Logo Header -->
+                </div>
+                <!-- Navbar Header -->
+                <nav class="navbar navbar-header navbar-header-transparent navbar-expand-lg border-bottom">
+                    <!-- 搜尋 -->
+                    <div class="container-fluid">
+                        <nav
+                            class="navbar navbar-header-left navbar-expand-lg navbar-form nav-search p-0 d-none d-lg-flex">
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <button type="submit" class="btn btn-search pe-1">
+                                        <i class="fa fa-search search-icon"></i>
+                                    </button>
+                                </div>
+                                <input type="text" placeholder="Search ..." class="form-control" />
+                            </div>
+                        </nav>
+                        <ul class="navbar-nav topbar-nav ms-md-auto align-items-center">
+                            <li class="nav-item topbar-icon dropdown hidden-caret d-flex d-lg-none">
+                                <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#" role="button"
+                                    aria-expanded="false" aria-haspopup="true">
+                                    <i class="fa fa-search"></i>
+                                </a>
+                                <ul class="dropdown-menu dropdown-search animated fadeIn">
+                                    <form class="navbar-left navbar-form nav-search">
+                                        <div class="input-group">
+                                            <input type="text" placeholder="Search ..." class="form-control" />
+                                        </div>
+                                    </form>
+                                </ul>
+                            </li>
+                            <!-- 登入管理者資訊-->
+                            @if (User.Identity?.IsAuthenticated == true)
+                            {
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
+                                        data-bs-toggle="dropdown" aria-expanded="false">
+                                        <span class="profile-username me-2">
+                                            <span class="op-7">Hi,</span>
+                                            <span class="fw-bold">@displayName</span>
+                                        </span>
+                                    </a>
+                                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                        <li><a class="dropdown-item" href="@Url.Action("Index", "Profile")"><i
+                                                    class="fas fa-user-circle me-2"></i>個人資料</a></li>
+                                        <li><a class="dropdown-item" href="@Url.Action("ChangePassword", "Profile")"><i
+                                                    class="fas fa-key me-2"></i>修改密碼</a></li>
+                                        <li>
+                                            <hr class="dropdown-divider">
+                                        </li>
+                                        <li><a class="dropdown-item" href="@Url.Action("Logout", "Auth")"><i
+                                                    class="fas fa-sign-out-alt me-2"></i>登出</a></li>
+                                    </ul>
+                                </li>
+                            }
+                            else
+                            {
+                                <li class="nav-item">
+                                    <a href="@Url.Action("Login", "Auth")" class="nav-link">
+                                        <i class="fas fa-sign-in-alt"></i> 登入
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </nav>
+            </div>
+            <!-- End Navbar -->
+
+
+            <div class="container">
+                @RenderBody()
+            </div>
+
+            <!-- footer -->
+            <footer class="footer">
+                <div class="container-fluid d-flex justify-content-between">
+                    <nav class="pull-left">
+                        <ul class="nav">
+                            <li class="nav-item">
+                                <a class="nav-link" href="http://www.ispan.com.tw">
+                                    iSpan資展國際
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                    <div class="copyright">
+                        2025 <a href="#">GhostToys魔型仔 </a><i class="fa fa-heart heart text-danger"></i> by FUEN42_Team3
+                    </div>
+                    <div>
+                        <a href="#">全端工程師就業養成班</a>
+                        @if (Context.RequestServices.GetService<IWebHostEnvironment>()?.IsDevelopment() == true)
+                        {
+                            <span class="ms-3">|</span>
+                            <a class="ms-2" href="/hangfire" target="_blank"><i
+                                    class="fas fa-external-link-alt me-1"></i>Hangfire</a>
+                        }
+                    </div>
+                </div>
+            </footer>
+            <!-- footer End-->
+        </div>
+    </div>
+
+
+    <!--   Core JS Files   -->
+    <script src="~/assets/js/core/jquery-3.7.1.min.js"></script>
+    <script src="~/assets/js/core/popper.min.js"></script>
+    <script src="~/assets/js/core/bootstrap.min.js"></script>
+
+    <!-- jQuery Scrollbar -->
+    <script src="~/assets/js/plugin/jquery-scrollbar/jquery.scrollbar.min.js"></script>
+
+    <!-- Datatables -->
+    <script src="~/assets/js/plugin/datatables/datatables.min.js"></script>
+    <!-- Datatables 中文語言設定 -->
+    <script src="~/assets/js/plugin/datatables/datatables-chinese.js"></script>
+
+    <!-- Bootstrap Notify -->
+    <script src="~/assets/js/plugin/bootstrap-notify/bootstrap-notify.min.js"></script>
+
+    <!-- Kaiadmin JS -->
+    <script src="~/assets/js/kaiadmin.min.js"></script>
+    <!-- 渲染 Scripts section -->
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+
+</html>

@@ -1,0 +1,480 @@
+@model FUEN42Team3.Backend.Models.ViewModels.NewsEditViewModel
+@{
+    ViewData["Title"] = "編輯公告 | GhostToys魔型仔";
+    Layout = "_Layout";
+    <link rel="stylesheet" href="~/css/NewsCreate.css" />
+    var isDraft = Model.Status == "draft";
+}
+
+<div class="page-inner">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        @(isDraft ? "編輯草稿" : "編輯公告")
+                        @if (isDraft)
+                        {
+                            <span class="badge badge-info ms-2">草稿</span>
+                        }
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Edit" asp-controller="News" method="post" enctype="multipart/form-data" id="newsForm">
+                        <input type="hidden" asp-for="Id" />
+                        <input type="hidden" asp-for="CreatedAt" />
+                        <input type="hidden" asp-for="ViewCountToday" />
+                        <input type="hidden" asp-for="ViewCountTotal" />
+
+                        <!-- 錯誤訊息區域 -->
+                        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                        <!-- 公告標題 -->
+                        <div class="mb-3">
+                            <label asp-for="Title" class="form-label">公告標題</label>
+                            <div class="col-md-6">
+                                <input class="form-control" type="text" asp-for="Title" required>
+                                <span asp-validation-for="Title" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <!-- 公告類別 -->
+                        <div class="mb-3">
+                            <label asp-for="CategoryId" class="form-label">公告類別</label>
+                            <select class="form-select" asp-for="CategoryId" asp-items="ViewBag.Categories" required style="width: auto;">
+                                <option value="">請選擇公告類別</option>
+                            </select>
+                            <span asp-validation-for="CategoryId" class="text-danger"></span>
+                        </div>
+
+                        <!-- 上架選項 -->
+                        <div class="mb-3">
+                            <label class="form-label">上架</label>
+                            <div class="d-flex gap-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="IsPublished" id="published_yes" value="true" @(Model.IsPublished ? "checked" : "") />
+                                    <label class="form-check-label" for="published_yes">是</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="IsPublished" id="published_no" value="false" @(!Model.IsPublished ? "checked" : "") />
+                                    <label class="form-check-label" for="published_no">否</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 置頂選項 -->
+                        <div class="mb-3">
+                            <label class="form-label">置頂</label>
+                            <div class="d-flex gap-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="IsPinned" id="pinned_yes" value="true" @(Model.IsPinned ? "checked" : "") />
+                                    <label class="form-check-label" for="pinned_yes">是</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="IsPinned" id="pinned_no" value="false" @(!Model.IsPinned ? "checked" : "") />
+                                    <label class="form-check-label" for="pinned_no">否</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 縮圖上傳 -->
+                        <div class="mb-3">
+                            <label class="form-label">縮圖</label>
+                            <div class="d-flex align-items-center gap-3">
+                                <input type="file" class="form-control" id="thumbnail" asp-for="ImageFile" accept="image/*"
+                                       style="width: auto;">
+                            </div>
+                            
+                            <!-- 保留原圖選項 -->
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="checkbox" asp-for="KeepOriginalImage" id="keepOriginalImage">
+                                <label class="form-check-label" for="keepOriginalImage">
+                                    保留原始圖片
+                                </label>
+                            </div>
+
+                            <!-- 現有圖片預覽 -->
+                            @if (!string.IsNullOrEmpty(Model.ImageUrl))
+                            {
+                                <div class="mt-2" id="currentImagePreview">
+                                    <label class="form-label">現有圖片:</label>
+                                    <div class="position-relative d-inline-block">
+                                        <img src="@Model.ImageUrl" alt="現有圖片" style="max-width: 150px; max-height: 150px; border: 1px solid #ddd; border-radius: 4px;">
+                                    </div>
+                                </div>
+                            }
+                            
+                            <!-- 新圖片預覽區域 -->
+                            <div class="mt-2" id="imagePreview" style="display: none;">
+                                <label class="form-label">新圖片預覽:</label>
+                                <div class="position-relative d-inline-block">
+                                    <img id="previewImg" src="" alt="預覽圖片"
+                                         style="max-width: 150px; max-height: 150px; border: 1px solid #ddd; border-radius: 4px;">
+                                    <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0"
+                                            onclick="removeImage()" style="margin: -8px;">
+                                        <i class="fa fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 內容編輯器 -->
+                        <div class="mb-3">
+                            <label for="content" class="form-label">內容</label>
+                            <div id="summernote"></div>
+                            <input type="hidden" asp-for="Content" id="content">
+                            <span asp-validation-for="Content" class="text-danger"></span>
+                        </div>
+
+                        <!-- 發佈時間 -->
+                        <div class="mb-3">
+                            <label asp-for="PublishedAt" class="form-label">發佈時間</label>
+                            <input type="datetime-local" class="form-control" asp-for="PublishedAt" id="publish_time"
+                                   style="width: auto;">
+                            <label class="form-text text-muted">若留空則立即發佈。</label>
+                        </div>
+
+                        <!-- 隱藏欄位用於存放狀態 -->
+                        <input type="hidden" asp-for="Status" id="status">
+                        <!-- 隱藏欄位同步radio button值 -->
+                        <input type="hidden" asp-for="IsPublished" id="isPublishedValue">
+                        <input type="hidden" asp-for="IsPinned" id="isPinnedValue">
+
+                        <!-- 按鈕 -->
+                        <div class="d-flex justify-content-end gap-2">
+                            <a asp-action="Index" class="btn btn-secondary">返回列表</a>
+                            @if (isDraft)
+                            {
+                                <button type="button" class="btn btn-primary" onclick="updateDraft()">更新草稿</button>
+                                <button type="button" class="btn btn-info" onclick="previewNews()">預覽</button>
+                                <button type="button" class="btn btn-success" onclick="publishDraft()">發布公告</button>
+                            }
+                            else
+                            {
+                                <button type="button" class="btn btn-info" onclick="previewNews()">預覽</button>
+                                <button type="submit" class="btn btn-success">更新公告</button>
+                            }
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 預覽 Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="previewModalLabel">公告預覽</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <h2 id="previewTitle" class="mb-3"></h2>
+                <div id="previewContent" class="preview-content"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-lite.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.18/lang/summernote-zh-TW.min.js"></script>
+    <!-- jQuery Validation Scripts -->
+    <partial name="_ValidationScriptsPartial" />
+    <!-- Custom JavaScript for form functionality -->
+    <script>
+        // 草稿狀態標記
+        const isDraft = '@isDraft.ToString().ToLower()' === 'true';
+        
+        // 設定發佈時間的最小值
+        document.addEventListener('DOMContentLoaded', function () {
+            const publishTimeInput = document.getElementById('publish_time');
+            
+            // 如果存在發佈時間，不需要設置最小值限制，否則設定為當前時間
+            if (!publishTimeInput.value) {
+                const now = new Date();
+                // 設定最小時間為當前時間
+                const minDateTime = now.toISOString().slice(0, 16);
+                publishTimeInput.min = minDateTime;
+            }
+
+            // 初始化 Summernote 編輯器
+            $('#summernote').summernote({
+                placeholder: '請在此輸入公告內容...',
+                tabsize: 2,
+                height: 300,
+                lang: 'zh-TW',
+                toolbar: [
+                    ['style', ['style']],
+                    ['font', ['bold', 'underline', 'italic', 'clear']],
+                    ['fontname', ['fontname']],
+                    ['fontsize', ['fontsize']],
+                    ['color', ['color']],
+                    ['para', ['ul', 'ol', 'paragraph']],
+                    ['table', ['table']],
+                    ['insert', ['link', 'picture', 'video']],
+                    ['view', ['fullscreen', 'codeview', 'help']]
+                ],
+                fontNames: ['Arial', 'Arial Black', 'Comic Sans MS', 'Courier New', 'Helvetica Neue', 'Helvetica', 'Impact', 'Lucida Grande', 'Tahoma', 'Times New Roman', 'Verdana', '微軟正黑體', '新細明體'],
+                fontNamesIgnoreCheck: ['微軟正黑體', '新細明體'],
+                callbacks: {
+                    onChange: function (contents) {
+                        // 當編輯器內容變更時，更新隱藏的input
+                        $('#content').val(contents);
+                    }
+                }
+            });
+
+            // 設定初始內容到summernote
+            const initialContent = $('#content').val();
+            if (initialContent) {
+                $('#summernote').summernote('code', initialContent);
+            }
+
+            // 處理圖片上傳與保留原圖選項的互動
+            const keepOriginalImageCheckbox = document.getElementById('keepOriginalImage');
+            const thumbnailInput = document.getElementById('thumbnail');
+            const currentImagePreview = document.getElementById('currentImagePreview');
+            
+            // 監聽上傳新圖片
+            thumbnailInput.addEventListener('change', function() {
+                if (thumbnailInput.files.length > 0) {
+                    // 如果上傳了新圖片，取消勾選保留原圖
+                    keepOriginalImageCheckbox.checked = false;
+                    if (currentImagePreview) {
+                        currentImagePreview.style.display = 'none';
+                    }
+                }
+            });
+            
+            // 監聽保留原圖選項
+            keepOriginalImageCheckbox.addEventListener('change', function() {
+                if (keepOriginalImageCheckbox.checked) {
+                    // 如果勾選了保留原圖，清空新上傳的圖片
+                    thumbnailInput.value = '';
+                    document.getElementById('imagePreview').style.display = 'none';
+                    
+                    // 顯示現有圖片
+                    if (currentImagePreview) {
+                        currentImagePreview.style.display = 'block';
+                    }
+                }
+            });
+            
+            // 監聽發布狀態變更，同步到隱藏欄位
+            document.querySelectorAll('input[name="IsPublished"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    document.getElementById('isPublishedValue').value = this.value;
+                });
+            });
+            
+            // 監聽置頂狀態變更，同步到隱藏欄位
+            document.querySelectorAll('input[name="IsPinned"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    document.getElementById('isPinnedValue').value = this.value;
+                });
+            });
+            
+            // 初始化隱藏欄位值
+            document.getElementById('isPublishedValue').value = document.querySelector('input[name="IsPublished"]:checked').value;
+            document.getElementById('isPinnedValue').value = document.querySelector('input[name="IsPinned"]:checked').value;
+        });
+
+        // 發佈時間變更時驗證
+        document.getElementById('publish_time').addEventListener('change', function (e) {
+            // 如果是編輯公告且已發佈過的，不需要驗證過去時間
+            const publishedAt = '@Model.PublishedAt?.ToString("yyyy-MM-ddTHH:mm")';
+            if (publishedAt && !isDraft) return;
+            
+            const selectedTime = new Date(e.target.value);
+            const now = new Date();
+
+            if (selectedTime < now) {
+                alert('發佈時間不能設定為過去的時間！');
+                const minDateTime = now.toISOString().slice(0, 16);
+                e.target.value = minDateTime;
+            }
+        });
+
+        // 圖片預覽功能
+        document.getElementById('thumbnail').addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            const preview = document.getElementById('imagePreview');
+            const previewImg = document.getElementById('previewImg');
+            const keepOriginalCheckbox = document.getElementById('keepOriginalImage');
+
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    previewImg.src = e.target.result;
+                    preview.style.display = 'block';
+                    
+                    // 如果上傳了新圖片，自動取消「保留原圖」選項
+                    if (keepOriginalCheckbox) {
+                        keepOriginalCheckbox.checked = false;
+                    }
+                };
+                reader.readAsDataURL(file);
+            } else {
+                preview.style.display = 'none';
+            }
+        });
+
+        // 移除圖片功能
+        function removeImage() {
+            document.getElementById('thumbnail').value = '';
+            document.getElementById('imagePreview').style.display = 'none';
+            
+            // 如果有原圖，預設重新勾選「保留原圖」
+            const keepOriginalCheckbox = document.getElementById('keepOriginalImage');
+            const currentImagePreview = document.getElementById('currentImagePreview');
+            
+            if (currentImagePreview) {
+                currentImagePreview.style.display = 'block';
+                if (keepOriginalCheckbox) {
+                    keepOriginalCheckbox.checked = true;
+                }
+            }
+        }
+
+        // 存為草稿功能（普通公告存為草稿）
+        function saveDraft() {
+            // 取得 Summernote 內容並設定到隱藏欄位
+            const content = $('#summernote').summernote('code');
+            $('#content').val(content);
+            
+            // 設定狀態為 draft
+            document.getElementById('status').value = 'draft';
+            
+            // 檢查必填欄位
+            if (!document.getElementById('Title').value) {
+                alert('請輸入公告標題！');
+                return;
+            }
+            
+            if (!document.getElementById('CategoryId').value) {
+                alert('請選擇公告類別！');
+                return;
+            }
+
+            // 提交表單
+            document.getElementById('newsForm').submit();
+        }
+
+        // 更新草稿功能（草稿保持草稿）
+        function updateDraft() {
+            // 取得 Summernote 內容並設定到隱藏欄位
+            const content = $('#summernote').summernote('code');
+            $('#content').val(content);
+            
+            // 設定狀態為 draft
+            document.getElementById('status').value = 'draft';
+            
+            // 檢查必填欄位
+            if (!document.getElementById('Title').value) {
+                alert('請輸入公告標題！');
+                return;
+            }
+            
+            if (!document.getElementById('CategoryId').value) {
+                alert('請選擇公告類別！');
+                return;
+            }
+
+            // 提交表單
+            document.getElementById('newsForm').submit();
+        }
+
+        // 發布草稿功能（將草稿變為正式公告）
+        function publishDraft() {
+            // 取得 Summernote 內容並設定到隱藏欄位
+            const content = $('#summernote').summernote('code');
+            $('#content').val(content);
+            
+            // 設定狀態為 published
+            document.getElementById('status').value = 'published';
+            document.getElementById('isPublishedValue').value = "true";
+            
+            // 檢查必填欄位
+            if (!document.getElementById('Title').value) {
+                alert('請輸入公告標題！');
+                return;
+            }
+            
+            if (!document.getElementById('CategoryId').value) {
+                alert('請選擇公告類別！');
+                return;
+            }
+
+            // 提交表單
+            document.getElementById('newsForm').submit();
+        }
+
+        // 預覽功能
+        function previewNews() {
+            const title = document.getElementById('Title').value;
+            const content = $('#summernote').summernote('code');
+            
+            if (!title) {
+                alert('請輸入公告標題以預覽！');
+                return;
+            }
+            
+            if (!content || content.trim() === '' || content === '<p><br></p>') {
+                alert('請輸入公告內容以預覽！');
+                return;
+            }
+            
+            // 設定預覽 Modal 的內容
+            document.getElementById('previewTitle').textContent = title;
+            document.getElementById('previewContent').innerHTML = content;
+            
+            // 顯示 Modal
+            const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+            previewModal.show();
+        }
+
+        // 表單提交前的檢查
+        document.getElementById('newsForm').addEventListener('submit', function (e) {
+            // 如果沒有設定狀態，則預設為發布狀態
+            if (!document.getElementById('status').value) {
+                document.getElementById('status').value = 'published';
+            }
+
+            // 同步radio button的值到隱藏欄位
+            document.getElementById('isPublishedValue').value = document.querySelector('input[name="IsPublished"]:checked').value;
+            document.getElementById('isPinnedValue').value = document.querySelector('input[name="IsPinned"]:checked').value;
+
+            // 取得 Summernote 內容並設定到隱藏欄位
+            const content = $('#summernote').summernote('code');
+            $('#content').val(content);
+
+            // 驗證發佈時間 (如果不是草稿且有設定發布時間)
+            const publishTime = document.getElementById('publish_time').value;
+            const publishedAt = '@Model.PublishedAt?.ToString("yyyy-MM-ddTHH:mm")';
+            
+            if (publishTime && !publishedAt && document.getElementById('status').value !== 'draft') {
+                const selectedTime = new Date(publishTime);
+                const now = new Date();
+
+                if (selectedTime < now) {
+                    alert('發佈時間不能設定為過去的時間！');
+                    e.preventDefault();
+                    return;
+                }
+            }
+
+            // 驗證內容不能為空
+            if (!content || content.trim() === '' || content === '<p><br></p>') {
+                alert('請輸入公告內容！');
+                e.preventDefault();
+                return;
+            }
+        });
+    </script>
+}

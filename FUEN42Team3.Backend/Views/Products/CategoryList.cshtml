@@ -1,0 +1,162 @@
+﻿@{
+    ViewData["Title"] = "分類/品牌管理 | GhostToys魔型仔";
+    Layout = "_Layout";
+}
+
+<div class="page-inner">
+    <div class="page-header">
+        <h4 class="page-title">分類 / 品牌管理</h4>
+    </div>
+
+    <div class="page-category">
+        <div class="col-md-12">
+
+            <!-- nav tab -->
+            <ul class="nav nav-tabs mb-3" id="categoryBrandTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="category-tab" data-bs-toggle="tab" data-bs-target="#category-pane" type="button" role="tab">
+                        分類管理
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="brand-tab" data-bs-toggle="tab" data-bs-target="#brand-pane" type="button" role="tab">
+                        品牌管理
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content">
+                <!-- === 分類管理內容 === -->
+                <div class="tab-pane fade show active" id="category-pane" role="tabpanel" aria-labelledby="category-tab">
+                    <!-- 工具列 -->
+                    <form id="categoryQueryForm" class="mb-3 d-flex flex-wrap gap-2 align-items-center">
+                        <label class="me-2">顯示：</label>
+                        <select id="categoryPageSize" class="form-select form-select-sm" style="width:auto;">
+                            <option value="10" selected>10</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                        </select>
+
+                        <input id="categoryKeyword" type="text" class="form-control" placeholder="搜尋分類名稱" style="width:220px;">
+                        <button type="button" id="btnCategorySearch" class="btn btn-primary">搜尋</button>
+                        <a href="@Url.Action("CategoryList", "Products")" class="btn btn-secondary">清除</a>
+
+                        <div class="ms-auto">
+                            <button type="button" id="btnAddCategory" class="btn btn-success">＋ 新增分類</button>
+                        </div>
+                    </form>
+
+                    <!-- 表格 -->
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table id="categoryTable" class="table table-striped table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>分類名稱</th>
+                                            <th>狀態</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody><!-- JS 動態產生 --></tbody>
+                                </table>
+                            </div>
+                            <div id="categoryPagination" class="d-flex justify-content-center"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- === 品牌管理內容 === -->
+                <div class="tab-pane fade" id="brand-pane" role="tabpanel" aria-labelledby="brand-tab">
+                    <!-- 工具列 -->
+                    <form id="brandQueryForm" class="mb-3 d-flex flex-wrap gap-2 align-items-center">
+                        <label class="me-2">顯示：</label>
+                        <select id="brandPageSize" class="form-select form-select-sm" style="width:auto;">
+                            <option value="10" selected>10</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                        </select>
+
+                        <input id="brandKeyword" type="text" class="form-control" placeholder="搜尋品牌名稱" style="width:220px;">
+                        <button type="button" id="btnBrandSearch" class="btn btn-primary">搜尋</button>
+                        <a href="@Url.Action("CategoryList", "Products")" class="btn btn-secondary">清除</a>
+
+                        <div class="ms-auto">
+                            <button type="button" id="btnAddBrand" class="btn btn-success">＋ 新增品牌</button>
+                        </div>
+                    </form>
+
+                    <!-- 表格 -->
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table id="brandTable" class="table table-striped table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>品牌圖片</th>
+                                            <th>品牌名稱</th>
+                                            <th>狀態</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody><!-- JS 動態產生 --></tbody>
+                                </table>
+                            </div>
+                            <div id="brandPagination" class="d-flex justify-content-center"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- 彈出視窗 Modal（分類/品牌共用） -->
+<div class="modal fade" id="itemModal" tabindex="-1" aria-labelledby="itemModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <!-- 加上 enctype，雖然用 FormData 不一定需要，但語意正確 -->
+            <form id="itemForm" enctype="multipart/form-data">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title" id="itemModalLabel">新增/編輯項目</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="關閉"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="itemType" />
+                    <input type="hidden" id="itemId" />
+
+                    <div class="mb-3">
+                        <label for="itemName" class="form-label">名稱</label>
+                        <input type="text" class="form-control" id="itemName" required />
+                    </div>
+
+                    <!-- 品牌專用圖片欄位；預設隱藏，JS 會在品牌時顯示 -->
+                    <div class="mb-3 d-none" id="brandImageGroup">
+                        <label for="itemImage" class="form-label">品牌圖片（Logo）</label>
+                        <input type="file" class="form-control" id="itemImage" accept="image/*" />
+                        <img id="itemPreview" src="#" class="img-fluid mt-2 d-none" style="max-height: 100px;" />
+                        <div class="form-text">建議上傳 PNG/JPG，大小 1MB 以內。</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-success">儲存</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // ===== API 常數（直接打到 /paged 端點）=====
+        window.CB_API = {
+            categoriesUrl: "/api/Categories/paged",
+            brandsUrl: "/api/Brands/paged"
+        };
+    </script>
+    <script src="~/js/catbrand.api.js"></script>
+}

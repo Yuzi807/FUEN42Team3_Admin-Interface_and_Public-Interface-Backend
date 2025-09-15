@@ -1,0 +1,98 @@
+﻿@{
+    ViewData["Title"] = "文章檢舉管理 | GhostToys魔型仔";
+    Layout = "_Layout";
+}
+<h3 class="fw-bold mb-4">文章檢舉管理</h3>
+
+<table class="table table-bordered text-center align-middle">
+    <thead class="table-light">
+        <tr>
+            <th>#</th>
+            <th>檢舉文章標題</th>
+            <th>檢舉人</th>
+            <th>違規條例</th>
+            <th>檢舉內容</th>
+            <th>檢舉時間</th>
+            <th>狀態</th>
+            <th>操作</th>
+        </tr>
+    </thead>
+    <tbody id="reportTable">
+        <!-- 以下示範一筆 -->
+        <tr>
+            <td>1</td>
+            <td class="text-start">如何亂刷存在感</td>
+            <td>地瓜球</td>
+            <td>惡意洗版</td>
+            <td class="text-start">這篇文章一直重複貼一樣的內容，造成版面混亂</td>
+            <td>2025-07-19 12:00</td>
+            <td><span class="badge bg-warning">未處理</span></td>
+            <td>
+                <button class="btn btn-sm btn-info" onclick="viewPost(123)">查看</button>
+                <button class="btn btn-sm btn-primary" onclick="openReviewModal(1)">處理</button>
+                <button class="btn btn-sm btn-warning"
+                        onclick="location.href='punishments.html?reportId=1'">
+                    懲罰
+                </button>
+                <button class="btn btn-sm btn-success" onclick="notifyUser(5)">通知</button>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+
+<!-- 審核 Modal -->
+<div class="modal fade" id="reviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <form class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">處理檢舉</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="關閉"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">處理狀態</label>
+                    <select class="form-select">
+                        <option value="1">未處理</option>
+                        <option value="2">處理中</option>
+                        <option value="3">已結案</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">處理結果</label>
+                    <select class="form-select">
+                        <option>屬實</option>
+                        <option>無效檢舉</option>
+                        <option>惡意檢舉</option>
+                        <option>未違規</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">備註</label>
+                    <textarea class="form-control" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button class="btn btn-primary" type="submit">儲存</button>
+            </div>
+        </form>
+    </div>
+</div>
+@section Scripts {
+    <script>
+        function openReviewModal(id) {
+            $('#reviewModal').modal('show');
+            // 後續可根據 id 載入檢舉資料
+        }
+
+        function viewPost(postId) {
+            window.open(`/Forum/Post/Details/${postId}`, '_blank');
+        }
+
+        function notifyUser(memberId) {
+            alert("已發送通知給使用者 ID：" + memberId);
+            // 實際應送出 POST 請求新增 Notification
+        }
+    </script>
+}

@@ -1,0 +1,221 @@
+﻿@{
+    ViewData["Title"] = "訂單列表 | GhostToys魔型仔";
+    Layout = "_Layout";
+}
+<div class="main-content">
+    <h1 class="mb-4">訂單管理</h1>
+
+    <!-- 篩選與搜尋面板 -->
+    <div class="card filter-panel">
+        <div class="filter-section">
+            <h5>基本篩選</h5>
+            <div class="row">
+                <div class="col-12 mb-3">
+                    <label for="statusFilter" class="form-label">訂單狀態</label>
+                    <select id="statusFilter" class="form-select">
+                        <option value="全部">全部</option>
+                        <option value="待處理">待處理</option>
+                        <option value="已出貨">已出貨</option>
+                        <option value="已完成">已完成</option>
+                        <option value="已取消">已取消</option>
+                    </select>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-6 mb-3">
+                    <label for="searchField" class="form-label">搜尋欄位</label>
+                    <select id="searchField" class="form-select">
+                        <option value="id">訂單 ID</option>
+                        <option value="user_id">用戶 ID</option>
+                        <option value="recipient_name">收件人姓名</option>
+                        <option value="phone">電話</option>
+                    </select>
+                </div>
+                <div class="col-6 mb-3">
+                    <label for="searchInput" class="form-label">關鍵字</label>
+                    <input id="searchInput" type="text" class="form-control" placeholder="輸入關鍵字">
+                </div>
+            </div>
+        </div>
+        <div class="filter-section">
+            <h5>時間篩選</h5>
+            <div class="row">
+                <div class="col-12 mb-3">
+                    <label for="dateStart" class="form-label">開始日期時間</label>
+                    <input id="dateStart" type="datetime-local" class="form-control">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12 mb-3">
+                    <label for="dateEnd" class="form-label">結束日期時間</label>
+                    <input id="dateEnd" type="datetime-local" class="form-control">
+                </div>
+            </div>
+        </div>
+        <div class="action-buttons">
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#barcodeModal">掃描條碼</button>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#orderModal">新增訂單</button>
+        </div>
+    </div>
+
+    <!-- 訂單列表 -->
+    <div class="table-container card">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>訂單 ID</th>
+                    <th>用戶 ID</th>
+                    <th>總額</th>
+                    <th>狀態</th>
+                    <th>下單時間</th>
+                    <th>收件人</th>
+                    <th>電話</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="orderTableBody">
+                <!-- 動態生成訂單資料 -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 分頁控制 -->
+    <div class="pagination-controls">
+        <div class="pagination-info">
+            <label for="itemsPerPage" class="form-label me-2">每頁顯示:</label>
+            <select id="itemsPerPage" class="form-select d-inline-block" style="width: auto;">
+                <option value="5">5</option>
+                <option value="10" selected>10</option>
+                <option value="20">20</option>
+            </select>
+            <span id="totalItems" class="ms-3">總計 2 筆資料</span>
+        </div>
+        <div class="pagination-buttons">
+            <button class="btn btn-sm btn-outline-primary" id="firstPage">第一頁</button>
+            <button class="btn btn-sm btn-outline-primary" id="prevPage">上一頁</button>
+            <span id="pageInfo" class="ms-2 me-2"></span>
+            <button class="btn btn-sm btn-outline-primary" id="nextPage">下一頁</button>
+            <button class="btn btn-sm btn-outline-primary" id="lastPage">最後一頁</button>
+        </div>
+    </div>
+
+    <!-- 新增/編輯訂單模態框 -->
+    <div class="modal fade" id="orderModal" tabindex="-1" aria-labelledby="orderModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="orderModalLabel">新增訂單</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="orderForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="userId" class="form-label">用戶 ID</label>
+                                <input type="number" class="form-control" id="userId" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="totalAmount" class="form-label">總額</label>
+                                <input type="number" class="form-control" id="totalAmount" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="status" class="form-label">狀態</label>
+                                <select class="form-select" id="status" required>
+                                    <option value="待處理">待處理</option>
+                                    <option value="已出貨">已出貨</option>
+                                    <option value="已完成">已完成</option>
+                                    <option value="已取消">已取消</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="paymentMethod" class="form-label">付款方式</label>
+                                <select class="form-select" id="paymentMethod" required>
+                                    <option value="">選擇付款方式</option>
+                                    <option value="信用卡">信用卡</option>
+                                    <option value="LINE Pay">LINE Pay</option>
+                                    <option value="綠界支付">綠界支付</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="deliveryMethod" class="form-label">運送方式</label>
+                                <select class="form-select" id="deliveryMethod" required>
+                                    <option value="">選擇運送方式</option>
+                                    <option value="宅配">宅配</option>
+                                    <option value="7-11 取貨">7-11 取貨</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="shippingFee" class="form-label">運費</label>
+                                <input type="number" class="form-control" id="shippingFee" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="usedPoints" class="form-label">紅利點數</label>
+                                <input type="number" class="form-control" id="usedPoints" value="0">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="recipientName" class="form-label">收件人姓名</label>
+                                <input type="text" class="form-control" id="recipientName" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="address" class="form-label">地址</label>
+                                <input type="text" class="form-control" id="address" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="phone" class="form-label">電話</label>
+                                <input type="text" class="form-control" id="phone" required>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label class="form-label">訂購內容</label>
+                                <div id="orderItems" class="order-items-container">
+                                    <!-- 動態生成訂購內容 -->
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="addItem">新增產品</button>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label class="form-label">贈品</label>
+                                <div id="giftItems" class="gifts-container">
+                                    <!-- 動態生成贈品 -->
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="addGift">新增贈品</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="submitOrder">提交</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 條碼掃描模態框 -->
+    <div class="modal fade" id="barcodeModal" tabindex="-1" aria-labelledby="barcodeModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="barcodeModalLabel">掃描條碼</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="barcodeScanner" class="barcode-scanner">
+                        <video autoplay playsinline></video>
+                        <div class="barcode-overlay" id="barcodeStatusText">對準條碼進行掃描...</div>
+                    </div>
+                    <div class="mt-3">
+                        <label for="barcodeStatus" class="form-label">更新狀態</label>
+                        <select class="form-select" id="barcodeStatus">
+                            <option value="已出貨">已出貨</option>
+                            <option value="已完成">已完成</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="submitBarcode">提交</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

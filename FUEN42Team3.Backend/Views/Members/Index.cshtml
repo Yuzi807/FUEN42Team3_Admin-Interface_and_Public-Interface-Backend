@@ -1,0 +1,283 @@
+﻿@{
+    ViewData["Title"] = "會員列表 | GhostToys魔型仔";
+    Layout = "_Layout";
+}
+<div class="page-inner">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">會員列表</h4>
+            </div>
+            <div class="card-body">
+                <!-- 統計資訊 -->
+                <div class="row mb-4">
+                    <div class="col-md-2">
+                        <div class="card card-stats card-primary">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-5">
+                                        <div class="icon-big text-center">
+                                            <i class="fas fa-users"></i>
+                                        </div>
+                                    </div>
+                                    <div class="col-7 d-flex align-items-center">
+                                        <div class="numbers">
+                                            <p class="card-category">總會員數</p>
+                                            <h4 class="card-title" id="totalMembers">0</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card card-stats card-success">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-5">
+                                        <div class="icon-big text-center">
+                                            <i class="fas fa-check-circle"></i>
+                                        </div>
+                                    </div>
+                                    <div class="col-7 d-flex align-items-center">
+                                        <div class="numbers">
+                                            <p class="card-category">已啟用</p>
+                                            <h4 class="card-title" id="activeMembers">0</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card card-stats card-danger">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-5">
+                                        <div class="icon-big text-center">
+                                            <i class="fas fa-ban"></i>
+                                        </div>
+                                    </div>
+                                    <div class="col-7 d-flex align-items-center">
+                                        <div class="numbers">
+                                            <p class="card-category">未啟用</p>
+                                            <h4 class="card-title" id="inactiveMembers">0</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card card-stats card-info">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-5">
+                                        <div class="icon-big text-center">
+                                            <i class="fas fa-envelope-open"></i>
+                                        </div>
+                                    </div>
+                                    <div class="col-7 d-flex align-items-center">
+                                        <div class="numbers">
+                                            <p class="card-category">已驗證</p>
+                                            <h4 class="card-title" id="verifiedMembers">0</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card card-stats card-warning">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-5">
+                                        <div class="icon-big text-center">
+                                            <i class="fas fa-envelope"></i>
+                                        </div>
+                                    </div>
+                                    <div class="col-7 d-flex align-items-center">
+                                        <div class="numbers">
+                                            <p class="card-category">未驗證</p>
+                                            <h4 class="card-title" id="unverifiedMembers">0</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 搜尋欄位 -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <input type="text" id="searchInput" class="form-control" placeholder="搜尋會員 (名稱、帳號或Email)">
+                            <button class="btn btn-primary" id="searchButton" type="button">
+                                <i class="fa fa-search"></i> 搜尋
+                            </button>
+                            <button class="btn btn-secondary" id="resetButton" type="button">
+                                <i class="fa fa-redo"></i> 重置
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 操作成功提示 -->
+                @if (TempData["SuccessMessage"] != null)
+                {
+                    <div class="alert alert-success alert-dismissible fade show mx-3" role="alert">
+                        <i class="fa fa-check me-2"></i> @TempData["SuccessMessage"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+
+                <div class="table-responsive">
+                    <table id="memberTable" class="display table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>編號</th>
+                                <th>使用者名稱</th>
+                                <th>帳號</th>
+                                <th>角色</th>
+                                <th>狀態</th>
+                                <th>註冊時間</th>
+                                <th>最後登入時間</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- Sweet Alert -->
+    <script src="~/assets/js/plugin/sweetalert/sweetalert.min.js"></script>
+
+    <!-- Datatables -->
+    <script src="~/assets/js/plugin/datatables/datatables.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            // 載入會員統計資料
+            loadMemberStats();
+
+            // 初始化 DataTable
+            const $table = $("#memberTable").DataTable({
+                responsive: true,
+                autoWidth: false,
+                processing: true,
+                ajax: {
+                    url: '/api/MembersApi',
+                    type: 'GET',
+                    dataSrc: ''
+                },
+                columns: [
+                    { data: "id", title: "編號" },
+                    { data: "userName", title: "使用者名稱" },
+                    { data: "account", title: "帳號" },
+                    { data: "roleName", title: "角色" },
+                    {
+                        data: "isActive",
+                        title: "狀態",
+                        render: function (data) {
+                            return data ? '<span class="badge badge-success">啟用</span>' : '<span class="badge badge-danger">停用</span>';
+                        }
+                    },
+                    {
+                        data: "createdAt",
+                        title: "註冊時間",
+                        render: function(data) {
+                            return formatDateTime(data);
+                        }
+                    },
+                    {
+                        data: "lastLoginAt",
+                        title: "最後登入時間",
+                        render: function(data) {
+                            return data ? formatDateTime(data) : '<span class="text-muted">尚未登入</span>';
+                        }
+                    },
+                    {
+                        data: null,
+                        title: "操作",
+                        orderable: false,
+                        render: function (data, type, row, meta) {
+                            return `
+                                <div class="d-flex">
+                                    <a href="/Members/Details/${row.id}" class="btn-view text-info me-2" title="檢視詳情">
+                                        <i class="fa fa-eye"></i>
+                                    </a>
+                                </div>
+                            `;
+                        }
+                    }
+                ],
+                language: {
+                    url: "//cdn.datatables.net/plug-ins/1.13.6/i18n/zh-HANT.json"
+                },
+                order: [[0, 'asc']]
+            });
+
+            // 格式化日期時間
+            function formatDateTime(dateStr) {
+                if (!dateStr) return '';
+                const date = new Date(dateStr);
+                return date.toLocaleString('zh-TW', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+            }
+
+            // 載入會員統計資料
+            function loadMemberStats() {
+                $.ajax({
+                    url: '/api/MembersApi/stats',
+                    type: 'GET',
+                    success: function(data) {
+                        $('#totalMembers').text(data.totalMembers);
+                        $('#activeMembers').text(data.activeMembers);
+                        $('#inactiveMembers').text(data.inactiveMembers);
+                        $('#verifiedMembers').text(data.verifiedMembers);
+                        $('#unverifiedMembers').text(data.unverifiedMembers);
+                    },
+                    error: function() {
+                        console.error('無法載入會員統計資料');
+                    }
+                });
+            }
+
+            // 搜尋功能
+            $('#searchButton').click(function() {
+                const keyword = $('#searchInput').val().trim();
+                if (keyword) {
+                    $table.ajax.url('/api/MembersApi/search?keyword=' + encodeURIComponent(keyword)).load();
+                } else {
+                    $table.ajax.url('/api/MembersApi').load();
+                }
+            });
+
+            // 重置搜尋
+            $('#resetButton').click(function() {
+                $('#searchInput').val('');
+                $table.ajax.url('/api/MembersApi').load();
+            });
+
+            // 按Enter鍵搜尋
+            $('#searchInput').keypress(function(e) {
+                if (e.which === 13) {
+                    $('#searchButton').click();
+                    return false;
+                }
+            });
+        });
+    </script>
+}

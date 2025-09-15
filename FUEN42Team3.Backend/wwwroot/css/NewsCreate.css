@@ -1,0 +1,24 @@
+﻿/* 設定全局中文字體 */
+body,
+table {
+    font-family: "Microsoft JhengHei", "微軟正黑體", sans-serif !important;
+}
+
+/* 修正 Summernote 下拉選單有兩個箭頭的問題 */
+.note-btn.dropdown-toggle::after {
+    display: none !important;
+}
+
+.sticker-modal img {
+    width: 80px;
+    height: 80px;
+    margin: 5px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: transform 0.2s ease;
+}
+
+    .sticker-modal img:hover {
+        transform: scale(1.1);
+        border: 2px solid #0d6efd;
+    }

@@ -1,0 +1,22 @@
+﻿@{
+    ViewData["Title"] = "公告詳情頁 | GhostToys魔型仔";
+    Layout = "_Layout";
+}
+<h2>公告頁</h2>
+<div id="announcement-id" class="mt-3"></div>
+<hr>
+<p>這裡未來會顯示公告內容。</p>
+
+
+@section Scripts {
+<script>
+    // 取得網址參數 id
+    function getQueryParam(name) {
+        const url = new URL(window.location.href);
+        return url.searchParams.get(name);
+    }
+
+    const announcementId = getQueryParam('id');
+    document.getElementById('announcement-id').innerHTML = `<strong>公告 ID：</strong> ${announcementId}`;
+</script>
+}

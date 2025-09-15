@@ -1,0 +1,156 @@
+@model FUEN42Team3.Backend.Models.EfModels.Member
+
+@{
+    ViewData["Title"] = "會員詳情 | GhostToys魔型仔";
+    Layout = "_Layout";
+}
+
+<div class="page-inner">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">會員詳情</h4>
+                <div class="card-tools">
+                    <a href="@Url.Action("Index")" class="btn btn-sm btn-secondary">
+                        <i class="fa fa-arrow-left"></i> 返回列表
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card card-profile">
+                            <div class="card-header" style="background-image: url('../assets/img/profilebg.jpg')">
+                                <div class="profile-picture">
+                                    <div class="avatar avatar-xl">
+                                        <img src="~/assets/img/FUEN42/avatar-placeholder.png" alt="會員頭像" class="avatar-img rounded-circle">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="user-profile text-center">
+                                    <div class="name">@Model.UserName</div>
+                                    <div class="job">@Model.Email</div>
+                                    <div class="desc">
+                                        註冊日期: @Model.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")
+                                    </div>
+                                    <div class="desc">
+                                        最後登入: @(ViewBag.LastLoginTime != null ? ((DateTime)ViewBag.LastLoginTime).ToString("yyyy-MM-dd HH:mm:ss") : "尚未登入")
+                                    </div>
+                                    <div class="view-profile">
+                                        <span class="badge @(Model.IsActive == true ? "badge-success" : "badge-danger")">
+                                            @(Model.IsActive == true ? "啟用" : "未啟用")
+                                        </span>
+                                        <span class="badge @(Model.IsConfirmed == true ? "badge-success" : "badge-warning")">
+                                            @(Model.IsConfirmed == true ? "已驗證" : "未驗證")
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h4 class="card-title">基本資料</h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered">
+                                        <tr>
+                                            <th>會員 ID</th>
+                                            <td>@Model.Id</td>
+                                        </tr>
+                                        <tr>
+                                            <th>使用者名稱</th>
+                                            <td>@Model.UserName</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th>Email</th>
+                                            <td>@Model.Email</td>
+                                        </tr>
+                                        <tr>
+                                            <th>狀態</th>
+                                            <td>
+                                                <span class="badge @(Model.IsActive == true ? "badge-success" : "badge-danger")">
+                                                    @(Model.IsActive == true ? "啟用" : "未啟用")
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th>驗證狀態</th>
+                                            <td>
+                                                <span class="badge @(Model.IsConfirmed == true ? "badge-success" : "badge-warning")">
+                                                    @(Model.IsConfirmed == true ? "已驗證" : "未驗證")
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th>註冊日期</th>
+                                            <td>@Model.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                        </tr>
+                                        <tr>
+                                            <th>最後登入時間</th>
+                                            <td>@(ViewBag.LastLoginTime != null ? ((DateTime)ViewBag.LastLoginTime).ToString("yyyy-MM-dd HH:mm:ss") : "尚未登入")</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 這裡可以加入其他相關資訊，例如訂單歷史、購物車等 -->
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h4 class="card-title">相關資訊</h4>
+                            </div>
+                            <div class="card-body">
+                                <ul class="nav nav-pills nav-secondary" id="pills-tab" role="tablist">
+                                    <li class="nav-item">
+                                        <a class="nav-link active" id="orders-tab" data-toggle="pill" href="#orders" role="tab" aria-controls="orders" aria-selected="true">訂單歷史</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" id="comments-tab" data-toggle="pill" href="#comments" role="tab" aria-controls="comments" aria-selected="false">留言</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" id="posts-tab" data-toggle="pill" href="#posts" role="tab" aria-controls="posts" aria-selected="false">發文</a>
+                                    </li>
+                                </ul>
+                                <div class="tab-content mt-2 mb-3" id="pills-tabContent">
+                                    <div class="tab-pane fade show active" id="orders" role="tabpanel" aria-labelledby="orders-tab">
+                                        <div class="alert alert-info">
+                                            訂單資訊將由API動態載入，目前顯示為預留區塊
+                                        </div>
+                                    </div>
+                                    <div class="tab-pane fade" id="comments" role="tabpanel" aria-labelledby="comments-tab">
+                                        <div class="alert alert-info">
+                                            留言記錄將由API動態載入，目前顯示為預留區塊
+                                        </div>
+                                    </div>
+                                    <div class="tab-pane fade" id="posts" role="tabpanel" aria-labelledby="posts-tab">
+                                        <div class="alert alert-info">
+                                            發文記錄將由API動態載入，目前顯示為預留區塊
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // 這裡可以加入載入其他相關資料的 AJAX 呼叫
+        });
+    </script>
+}

@@ -1,0 +1,202 @@
+﻿@model FUEN42Team3.Backend.Models.ViewModels.QueryViewModel<PostReportViewModel>
+@using FUEN42Team3.Backend.Models.ViewModels
+@using X.PagedList.Mvc.Core
+
+@{
+    ViewData["Title"] = "文章檢舉管理 | GhostToys魔型仔";
+    Layout = "_Layout";
+    var frontBase = "http://localhost:5173"; // 上線後改正式網域
+}
+
+<div class="page-inner">
+    <div class="page-header">
+        <h4 class="page-title">文章檢舉管理</h4>
+    </div>
+    <div class="page-category">
+        <div class="col-md-12">
+
+            <!-- 🔍 搜尋表單（避免巢狀 form，保持單一） -->
+            <form method="get" class="mb-3 d-flex flex-wrap gap-2 align-items-center">
+                <label class="me-2">顯示筆數：</label>
+                <select name="pageSize" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+                    <option value="5"  selected="@(Model.PageSize == 5)">5</option>
+                    <option value="10" selected="@(Model.PageSize == 10)">10</option>
+                    <option value="25" selected="@(Model.PageSize == 25)">25</option>
+                </select>
+
+                <div class="vr mx-2 d-none d-md-block"></div>
+
+                <div class="col-auto">
+                    <input type="text" name="keyword" value="@Model.Keyword" class="form-control" placeholder="搜尋標題或作者">
+                </div>
+                <div class="col-auto">
+                    <input type="date" name="startDate" value="@Model.StartDate?.ToString("yyyy-MM-dd")" class="form-control">
+                </div>
+                <div class="col-auto">
+                    <input type="date" name="endDate" value="@Model.EndDate?.ToString("yyyy-MM-dd")" class="form-control">
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-primary">搜尋</button>
+                </div>
+                <div class="col-auto">
+                    <a href="@Url.Action("PostReports", "Forum")" class="btn btn-secondary">清除</a>
+                </div>
+            </form>
+
+            <!-- 📄 資料表 -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>文章標題</th>
+                                    <th>檢舉人</th>
+                                    <th>檢舉規則</th>
+                                    <th>檢舉時間</th>
+                                    <th>處理狀態</th>
+                                    <th>審查結果</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.Items != null && Model.Items.Any())
+                                {
+                                    foreach (var r in Model.Items)
+                                    {
+                                        var frontUrl = $"{frontBase}/posts/{r.PostId}";
+                                        <tr>
+                                            <td>@r.PostTitle</td>
+                                            <td>@r.ReporterName</td>
+                                            <td>@r.RuleName</td>
+                                            <td>@r.ReportTime.ToString("yyyy/MM/dd HH:mm")</td>
+                                            <td>@r.StatusName</td>
+                                            <td>@r.ResultName</td>
+                                            <td class="d-flex gap-2">
+                                                <!-- ✅ 改成前台文章頁 -->
+                                                <a href="@frontUrl"
+                                                   target="_blank"
+                                                   rel="noopener"
+                                                   class="btn btn-sm btn-info">查看文章</a>
+
+                                                <button class="btn btn-sm btn-warning"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#handleModal-@r.Id">處理</button>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr><td colspan="7">目前沒有符合條件的檢舉。</td></tr>
+                                }
+                            </tbody>
+                        </table>
+
+                        @* BootStrap Modal *@
+                        @foreach (var r in Model.Items)
+                        {
+                            <div class="modal fade" id="handleModal-@r.Id" tabindex="-1" aria-labelledby="modalLabel-@r.Id" aria-hidden="true">
+                                <div class="modal-dialog modal-lg">
+                                    <div class="modal-content">
+                                        <form method="post" asp-action="HandlePostReport" onsubmit="return confirm('確定要送出這次處理結果嗎？');">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">處理檢舉</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="關閉"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <input type="hidden" name="Id" value="@r.Id" />
+                                                <input type="hidden" name="PostId" value="@r.PostId" />
+                                                <input type="hidden" name="ReporterId" value="@r.ReporterId" />
+                                                <input type="hidden" name="PosterId" value="@r.PosterId" />
+
+                                                <div class="mb-2"><strong>文章標題：</strong> @r.PostTitle</div>
+                                                <div class="mb-2"><strong>被檢舉者：</strong> @r.PosterName</div>
+                                                <div class="mb-2"><strong>檢舉人：</strong> @r.ReporterName</div>
+                                                <div class="mb-2"><strong>檢舉規則：</strong> @r.RuleName</div>
+                                                <div class="mb-2"><strong>檢舉時間：</strong> @r.ReportTime.ToString("yyyy/MM/dd HH:mm")</div>
+
+                                                <div class="mb-3">
+                                                    <label class="form-label">審查結果</label>
+                                                    <select name="ResultId" class="form-select result-select" data-id="@r.Id" required>
+                                                        <option value="">-- 請選擇 --</option>
+                                                        <option value="1">違規</option>
+                                                        <option value="2">未違規</option>
+                                                        <option value="3">無效檢舉</option>
+                                                    </select>
+                                                </div>
+
+                                                <div class="mb-3 notify-preview" id="notify-@r.Id" style="display:none;">
+                                                    <strong>通知文字預覽：</strong>
+                                                    <div class="alert alert-secondary">
+                                                        您因違規文章「@r.PostTitle」被系統處以相應懲罰，請遵守社群規則。
+                                                    </div>
+                                                </div>
+
+                                                <div class="form-check delete-option" id="delete-@r.Id" style="display:none;">
+                                                    <input class="form-check-input" type="checkbox" name="DeletePost" value="true" id="deletePostCheck-@r.Id">
+                                                    <label class="form-check-label" for="deletePostCheck-@r.Id">
+                                                        同時刪除這篇文章
+                                                    </label>
+                                                </div>
+                                            </div>
+
+                                            <div class="modal-footer">
+                                                <button type="submit" class="btn btn-primary">送出處理</button>
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- 📌 分頁 -->
+                    <div class="d-flex justify-content-center">
+                        @Html.PagedListPager(Model.Items, page =>
+                            Url.Action("PostReports", new {
+                                page,
+                                pageSize = Model.PageSize,
+                                keyword = Model.Keyword
+                            }),
+                            new PagedListRenderOptions
+                            {
+                                UlElementClasses = new[] { "pagination" },
+                                LiElementClasses = new[] { "page-item" },
+                                PageClasses = new[] { "page-link" },
+                                DisplayLinkToFirstPage = PagedListDisplayMode.Always,
+                                DisplayLinkToLastPage = PagedListDisplayMode.Always,
+                                DisplayLinkToPreviousPage = PagedListDisplayMode.Always,
+                                DisplayLinkToNextPage = PagedListDisplayMode.Always,
+                                MaximumPageNumbersToDisplay = 5
+                            })
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const selects = document.querySelectorAll('.result-select');
+    selects.forEach(select => {
+      select.addEventListener('change', function () {
+        const id = this.getAttribute('data-id');
+        const notify = document.getElementById(`notify-${id}`);
+        const deleteOpt = document.getElementById(`delete-${id}`);
+        if (this.value === "1") { // 違規
+          notify.style.display = "block";
+          deleteOpt.style.display = "block";
+        } else {
+          notify.style.display = "none";
+          deleteOpt.style.display = "none";
+        }
+      });
+    });
+  });
+</script>
+}

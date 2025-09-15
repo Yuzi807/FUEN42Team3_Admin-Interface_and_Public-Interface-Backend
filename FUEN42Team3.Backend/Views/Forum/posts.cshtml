@@ -1,0 +1,142 @@
+﻿@model FUEN42Team3.Backend.Models.ViewModels.QueryViewModel<PostsViewModel>
+@using FUEN42Team3.Backend.Models.ViewModels
+@using X.PagedList.Mvc.Core
+
+@{
+    ViewData["Title"] = "文章管理 | GhostToys魔型仔";
+    Layout = "_Layout";
+    // 如果未來要上線，這裡可以改成從設定檔讀取
+    var frontBase = "http://localhost:5173";
+}
+
+<div class="page-inner">
+    <div class="page-header">
+        <h4 class="page-title">文章管理</h4>
+    </div>
+    <div class="page-category">
+        <div class="col-md-12">
+
+            <!-- 🔍 搜尋表單（合併為單一 form，避免巢狀 <form>） -->
+            <form method="get" class="mb-3 d-flex flex-wrap gap-2 align-items-center">
+                <label class="me-2">顯示筆數：</label>
+                <select name="pageSize" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+                    <option value="5"  selected="@(Model.PageSize == 5)">5</option>
+                    <option value="10" selected="@(Model.PageSize == 10)">10</option>
+                    <option value="25" selected="@(Model.PageSize == 25)">25</option>
+                </select>
+
+                <div class="vr mx-2 d-none d-md-block"></div>
+
+                <div class="col-auto">
+                    <input type="text" name="keyword" value="@Model.Keyword" class="form-control" placeholder="搜尋標題或作者">
+                </div>
+                <div class="col-auto">
+                    <input type="date" name="startDate" value="@Model.StartDate?.ToString("yyyy-MM-dd")" class="form-control">
+                </div>
+                <div class="col-auto">
+                    <input type="date" name="endDate" value="@Model.EndDate?.ToString("yyyy-MM-dd")" class="form-control">
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-primary">搜尋</button>
+                </div>
+                <div class="col-auto">
+                    <a href="@Url.Action("Posts", "Forum")" class="btn btn-secondary">清除</a>
+                </div>
+            </form>
+
+            <!-- 📄 資料表 -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>標題</th>
+                                    <th>作者</th>
+                                    <th>分類</th>
+                                    <th>發文時間</th>
+                                    <th>讚數</th>
+                                    <th>點閱</th>
+                                    <th>狀態</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.Items != null && Model.Items.Any())
+                                {
+                                    foreach (var post in Model.Items)
+                                    {
+                                        var frontUrl = $"{frontBase}/posts/{post.Id}";
+                                        <tr>
+                                            <td>@post.Id</td>
+                                            <td>@post.Title</td>
+                                            <td>@post.Member</td>
+                                            <td>@post.Category</td>
+                                            <td>@(post.PostTime?.ToString("yyyy/MM/dd HH:mm:ss") ?? "-")</td>
+                                            <td>@post.NumOfGoods</td>
+                                            <td>@post.NumOfHits</td>
+                                            <td>@post.StatusName</td>
+                                            <td class="d-flex gap-2">
+                                                @* 只允許公開的文章連到前台 *@
+                                                @if (string.Equals(post.StatusName, "公開", System.StringComparison.OrdinalIgnoreCase))
+                                                {
+                                                    <a href="@frontUrl"
+                                                       target="_blank"
+                                                       rel="noopener"
+                                                       class="btn btn-sm btn-info">查看</a>
+                                                }
+                                                else
+                                                {
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled>僅限公開</button>
+                                                }
+
+                                                <form asp-action="DeletePost" method="post" onsubmit="return confirm('確定要刪除這篇文章嗎？');">
+                                                    <input type="hidden" name="id" value="@post.Id" />
+                                                    <input type="hidden" name="keyword" value="@Model.Keyword" />
+                                                    <input type="hidden" name="startDate" value="@Model.StartDate?.ToString("yyyy-MM-dd")" />
+                                                    <input type="hidden" name="endDate" value="@Model.EndDate?.ToString("yyyy-MM-dd")" />
+                                                    <input type="hidden" name="page" value="@Model.Page" />
+                                                    <input type="hidden" name="pageSize" value="@Model.PageSize" />
+                                                    <button type="submit" class="btn btn-danger btn-sm">刪除</button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr><td colspan="9">目前沒有符合條件的資料。</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 📌 分頁列 -->
+                    <div class="d-flex justify-content-center">
+                        @Html.PagedListPager(Model.Items, page =>
+                            Url.Action("Posts", new {
+                                page,
+                                pageSize = Model.PageSize,
+                                keyword = Model.Keyword,
+                                startDate = Model.StartDate?.ToString("yyyy-MM-dd"),
+                                endDate = Model.EndDate?.ToString("yyyy-MM-dd")
+                            }),
+                            new PagedListRenderOptions
+                            {
+                                UlElementClasses = new[] { "pagination" },
+                                LiElementClasses = new[] { "page-item" },
+                                PageClasses = new[] { "page-link" },
+                                DisplayLinkToFirstPage = PagedListDisplayMode.Always,
+                                DisplayLinkToLastPage = PagedListDisplayMode.Always,
+                                DisplayLinkToPreviousPage = PagedListDisplayMode.Always,
+                                DisplayLinkToNextPage = PagedListDisplayMode.Always,
+                                MaximumPageNumbersToDisplay = 5
+                            })
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

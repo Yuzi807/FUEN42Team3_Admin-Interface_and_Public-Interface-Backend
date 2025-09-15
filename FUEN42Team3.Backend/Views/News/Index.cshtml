@@ -1,0 +1,1414 @@
+﻿@model FUEN42Team3.Backend.Models.ViewModels.NewsIndexViewModel
+@{
+    ViewData["Title"] = "最新消息管理 | GhostToys魔型仔";
+}
+<div class="page-inner">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">最新消息管理</h4>
+            </div>
+            <div class="card-body">
+                <ul class="nav nav-tabs nav-line nav-color-secondary" id="line-tab" role="tablist">
+                    <li class="nav-item submenu" role="presentation">
+                        <a class="nav-link active" id="pills-news-tab" data-bs-toggle="pill" href="#pills-news" role="tab"
+                           aria-controls="pills-news" aria-selected="true">公告文章</a>
+                    </li>
+                    <li class="nav-item submenu" role="presentation">
+                        <a class="nav-link" id="pills-category-tab" data-bs-toggle="pill" href="#pills-category" role="tab"
+                           aria-controls="pills-category" aria-selected="false" tabindex="-1">公告分類</a>
+                    </li>
+                </ul>
+            </div>
+            <div class="tab-content mt-2 mb-3" id="pills-without-border-tabContent">
+                <!-- 公告文章 -->
+                <div class="tab-pane fade show active" id="pills-news" role="tabpanel" aria-labelledby="pills-news-tab">
+                    <!-- 篩選搜尋區 -->
+                    <div class="card shadow-sm mx-3 pb-3">
+                        <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
+                            <h6 class="m-0 font-weight-bold"><i class="fas fa-filter mr-1"></i> 篩選搜尋</h6>
+                            <button class="btn btn-light btn-sm" id="resetNewsFilters">
+                                <i class="fas fa-redo"></i> 重設
+                            </button>
+                        </div>
+                        <div class="card-body pb-0">
+                            <div class="row">
+                                <div class="col-md-3 col-sm-6">
+                                    <div class="form-group">
+                                        <label>分類</label>
+                                        <select class="form-control" id="category-filter">
+                                            <option value="">全部分類</option>
+                                            @foreach (var cat in Model.CategoryList)
+                                            {
+                                                <option value="@cat.CategoryName">@cat.CategoryName</option>
+                                            }
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-6">
+                                    <div class="form-group">
+                                        <label>發文者</label>
+                                        <select class="form-control" id="author-filter">
+                                            <option value="">全部發文者</option>
+                                            @foreach (var author in Model.NewsList.Select(n => n.UserName).Distinct())
+                                            {
+                                                <option value="@author">@author</option>
+                                            }
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 col-sm-6">
+                                    <div class="form-group">
+                                        <label>日期範圍</label>
+                                        <div class="input-group">
+                                            <input type="date" class="form-control" id="start-date">
+                                            <div class="input-group-append">
+                                                <span class="input-group-text">至</span>
+                                            </div>
+                                            <input type="date" class="form-control" id="end-date">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-2 col-sm-6">
+                                    <div class="form-group">
+                                        <label>狀態</label>
+                                        <select class="form-control" id="status-filter">
+                                            <option value="">全部</option>
+                                            <option value="公開">公開</option>
+                                            <option value="隱藏">隱藏</option>
+                                            <option value="草稿">草稿</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 操作按鈕 -->
+                    <div class="d-flex">
+                        <div class="card-body">
+                            <a asp-controller="News" asp-action="Create" class="btn btn-secondary btn-round mb-3 me-2">
+                                <span class="btn-label">
+                                    <i class="fa fa-plus"></i>
+                                </span> 新增公告
+                            </a>
+                            <button id="batch-delete-btn" class="btn btn-primary btn-round mb-3 me-2" disabled>
+                                <span class="btn-label">
+                                    <i class="far fa-trash-alt"></i>
+                                </span>
+                                <span class="ms-2">批量刪除</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 操作成功提示 -->
+                    @if (TempData["SuccessMessage"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show mx-3" role="alert">
+                            <i class="fa fa-check me-2"></i> @TempData["SuccessMessage"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+
+                    <div class="table-responsive">
+                        <table id="news-datatables" class="display table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th><input type="checkbox" id="news-check-all" title="全選/取消全選" /></th>
+                                    <th>置頂</th>
+                                    <th>編號</th>
+                                    <th>文章標題</th>
+                                    <th>分類</th>
+                                    <th>發文者</th>
+                                    <th>發布時間</th>
+                                    <th>更新時間</th>
+                                    <th>狀態</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.NewsList)
+                                {
+                                    <tr>
+                                        <td><input type="checkbox" class="news-row-check" data-id="@item.Id" /></td>
+                                        <td>
+                                            @if (item.IsPinned)
+                                            {
+                                                <i class="fas fa-thumbtack text-warning"></i>
+                                            }
+                                            else
+                                            {
+                                                <i class="fas fa-thumbtack"></i>
+                                            }
+                                        </td>
+                                        <td>@item.Id</td>
+                                        <td>@item.Title</td>
+                                        <td>@item.CategoryName</td>
+                                        <td>@item.UserName</td>
+                                        <td>
+                                            @{
+                                                // 判斷發布時間是否為未來時間
+                                                bool isFutureDate = item.PublishedAt.HasValue && item.PublishedAt.Value > DateTime.Now;
+                                            }
+                                            @if (isFutureDate)
+                                            {
+                                                <span class="text-danger fw-bold">@item.PublishedAt?.ToString("yyyy-MM-dd HH:mm")</span>
+                                            }
+                                            else
+                                            {
+                                                @item.PublishedAt?.ToString("yyyy-MM-dd HH:mm")
+                                            }
+                                        </td>
+                                        <td>@item.UpdatedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                                        <td>
+                                            @if (item.Status == "公開")
+                                            {
+                                                <span class="badge badge-success">公開</span>
+                                            }
+                                            else if (item.Status == "隱藏")
+                                            {
+                                                <span class="badge badge-count">隱藏</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge badge-info">草稿</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <a asp-action="Edit" asp-route-id="@item.Id" title="編輯">
+                                                <i class="fa fa-edit"></i>
+                                            </a>
+                                            &nbsp;
+                                            <a asp-action="Delete" asp-route-id="@item.Id" title="刪除">
+                                                <i class="fa fa-times text-danger"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- 公告分類 -->
+                <div class="tab-pane fade" id="pills-category" role="tabpanel" aria-labelledby="pills-category-tab">
+                    <!-- 篩選搜尋區 -->
+                    <div class="card shadow-sm mx-3 pb-3">
+                        <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
+                            <h6 class="m-0 font-weight-bold"><i class="fas fa-filter mr-1"></i> 篩選搜尋</h6>
+                            <button class="btn btn-light btn-sm" id="resetCategoryFilters">
+                                <i class="fas fa-redo"></i> 重設
+                            </button>
+                        </div>
+                        <div class="card-body pb-0">
+                            <div class="row">
+                                <div class="col-md-4 col-sm-6">
+                                    <div class="form-group">
+                                        <label>分類名稱</label>
+                                        <input type="text" class="form-control" id="category-name-filter" placeholder="輸入分類名稱">
+                                    </div>
+                                </div>
+                                <div class="col-md-4 col-sm-6">
+                                    <div class="form-group">
+                                        <label>顯示狀態</label>
+                                        <select class="form-control" id="category-status-filter">
+                                            <option value="">全部</option>
+                                            <option value="公開">公開</option>
+                                            <option value="隱藏">隱藏</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 操作按鈕 -->
+                    <div class="d-flex">
+                        <div class="card-body">
+                            <button type="button" class="btn btn-secondary btn-round mb-3 me-2"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#addCategoryModal">
+                                <span class="btn-label">
+                                    <i class="fa fa-plus"></i>
+                                </span> 新增分類
+                            </button>
+                            <button id="category-batch-delete-btn" class="btn btn-primary btn-round mb-3 me-2" disabled>
+                                <span class="btn-label">
+                                    <i class="far fa-trash-alt"></i>
+                                </span>
+                                <span class="ms-2">批量刪除</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 分類操作成功提示 -->
+                    <div id="category-success-message" class="mx-3" style="display: none;">
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="fa fa-check me-2"></i> <span id="category-success-text"></span>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table id="category-datatables" class="display table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th><input type="checkbox" id="category-check-all" title="全選/取消全選" /></th>
+                                    <th>編號</th>
+                                    <th>名稱</th>
+                                    <th>圖示</th>
+                                    <th>公開/隱藏</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="category-table-body">
+                                @foreach (var cat in Model.CategoryList)
+                                {
+                                    <tr>
+                                        <td><input type="checkbox" class="category-row-check" data-id="@cat.Id" /></td>
+                                        <td>@cat.Id</td>
+                                        <td>@cat.CategoryName</td>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(cat.IconPath))
+                                            {
+                                                <img src="@cat.Icon" width="32" />
+                                            }
+                                            else
+                                            {
+                                                <img src="~/assets/img/FUEN42/GhostToys_Icon_Cute.ico" width="32" />
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (cat.IsVisible)
+                                            {
+                                                <span class="badge badge-success">公開</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge badge-count">隱藏</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <a href="#" class="edit-category" data-id="@cat.Id">
+                                                <i class="fa fa-edit" title="編輯"></i>
+                                            </a>
+                                            &nbsp;
+                                            <a href="#" class="delete-category" data-id="@cat.Id">
+                                                <i class="fa fa-times text-danger" title="刪除"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 新增分類 Modal -->
+<div class="modal fade" id="addCategoryModal" tabindex="-1" aria-labelledby="addCategoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addCategoryModalLabel">新增分類</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addCategoryForm">
+                    <div class="mb-3">
+                        <label for="add-categoryName" class="form-label">分類名稱</label>
+                        <input type="text" class="form-control" id="add-categoryName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit-categoryIcon" class="form-label">選擇圖示</label>
+                        <input type="file" class="form-control" id="edit-categoryIcon" name="Icon" accept="image/*">
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="add-isVisible" checked>
+                        <label class="form-check-label" for="add-isVisible">
+                            顯示此分類
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" id="saveCategoryBtn" data-bs-dismiss="modal" class="btn btn-primary">儲存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 編輯分類 Modal -->
+<div class="modal fade" id="editCategoryModal" tabindex="-1" aria-labelledby="editCategoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editCategoryModalLabel">編輯分類</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editCategoryForm">
+                    <input type="hidden" id="edit-categoryId">
+                    <div class="mb-3">
+                        <label for="edit-categoryName" class="form-label">分類名稱</label>
+                        <input type="text" class="form-control" id="edit-categoryName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit-categoryIcon" class="form-label">選擇圖示</label>
+                        <input type="file" class="form-control" id="edit-categoryIcon" name="Icon" accept="image/*">
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="edit-isVisible">
+                        <label class="form-check-label" for="edit-isVisible">
+                            顯示此分類
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" id="updateCategoryBtn" class="btn btn-primary">儲存</button>
+                <button type="button" id="deleteCategoryBtn" class="btn btn-danger">刪除</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 全局加載指示器 -->
+<div id="global-loader" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 9998;">
+    <div class="spinner-border text-light" role="status" style="width: 3rem; height: 3rem;">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+</div>
+
+@section Scripts {
+    <!--   Core JS Files   -->
+    <script src="../assets/js/core/jquery-3.7.1.min.js"></script>
+    <script src="../assets/js/core/popper.min.js"></script>
+    <script src="../assets/js/core/bootstrap.min.js"></script>
+
+    <!-- Sweet Alert -->
+    <script src="../assets/js/plugin/sweetalert/sweetalert.min.js"></script>
+
+    <!-- jQuery Scrollbar -->
+    <script src="../assets/js/plugin/jquery-scrollbar/jquery.scrollbar.min.js"></script>
+    <!-- Datatables -->
+    <script src="../assets/js/plugin/datatables/datatables.min.js"></script>
+    <!-- Datatables 中文語言設定 -->
+    <script src="../assets/js/plugin/datatables/datatables-chinese.js"></script>
+    <!-- Kaiadmin JS -->
+    <script src="../assets/js/kaiadmin.min.js"></script>
+    <script>
+                $(document).ready(function () {
+                    // 統一使用 NewsApiController 的 API 路徑
+                    const apiBaseUrl = '/api/NewsApi';
+                    let categoryTable;
+                    let newsTable;
+                    let isLoadingData = false; // 追蹤載入狀態
+
+                    // 初始化頁面資料顯示
+                    initializeTables();
+                    loadCategories();
+
+                    // 在DataTable初始化後，標記未發布的文章發布時間為紅色粗體
+                    function markFuturePublishDates() {
+                        const now = new Date();
+
+                        // 選擇所有的發布時間單元格進行處理
+                        $('#news-datatables tbody tr').each(function() {
+                            const $row = $(this);
+                            const $publishCell = $row.find('td:eq(6)'); // 發布時間位於第7列 (索引6)
+
+                            if ($publishCell.length) {
+                                // 檢查是否已經處理過（是否包含span元素）
+                                if ($publishCell.find('span.text-danger.fw-bold').length === 0) {
+                                    const publishText = $publishCell.text().trim();
+
+                                    if (publishText) {
+                                        try {
+                                            // 解析日期 (格式: yyyy-MM-dd HH:mm)
+                                            const dateParts = publishText.split(' ');
+                                            if (dateParts.length === 2) {
+                                                const [datePart, timePart] = dateParts;
+                                                const [year, month, day] = datePart.split('-').map(num => parseInt(num, 10));
+                                                const [hours, minutes] = timePart.split(':').map(num => parseInt(num, 10));
+
+                                                // 注意: JavaScript月份是0-11
+                                                const publishDate = new Date(year, month - 1, day, hours, minutes);
+
+                                                // 如果是未來日期，則用紅色粗體顯示
+                                                if (publishDate > now) {
+                                                    $publishCell.html(`<span class="text-danger fw-bold">${publishText}</span>`);
+                                                }
+                                            }
+                                        } catch (error) {
+                                            console.error('解析日期時發生錯誤:', error);
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    }
+
+                    // 從 API 獲取分類資料並顯示
+                    function loadCategories() {
+                        if (isLoadingData) return; // 避免重複載入
+
+                        isLoadingData = true;
+                        showGlobalLoader();
+
+                        console.log('嘗試載入分類資料，API 路徑:', `${apiBaseUrl}/categories`);
+
+                        fetch(`${apiBaseUrl}/categories`) // 統一使用 NewsApiController
+                            .then(response => {
+                                console.log('API 回應狀態:', response.status);
+                                console.log('API 回應標頭:', response.headers);
+                                return handleResponse(response);
+                            })
+                            .then(data => {
+                                console.log('成功取得分類資料:', data);
+                                renderCategoriesTable(data);
+                            })
+                            .catch(error => {
+                                console.error('載入分類時發生錯誤:', error);
+                                handleError(error);
+                            })
+                            .finally(() => {
+                                hideGlobalLoader();
+                                isLoadingData = false;
+                            });
+                    }
+
+                    // 處理 API 回應
+                    function handleResponse(response) {
+                        if (!response.ok) {
+                            throw new Error(`API 回應錯誤: ${response.status}`);
+                        }
+                        return response.json();
+                    }
+
+                    // 顯示全局載入中動畫
+                    function showGlobalLoader() {
+                        $('#global-loader').css('display', 'flex').fadeIn(100);
+                    }
+
+                    // 隱藏全局載入中動畫
+                    function hideGlobalLoader() {
+                        $('#global-loader').fadeOut(100);
+                    }
+
+                    // 處理錯誤
+                    function handleError(error) {
+                        console.error('詳細錯誤資訊:', error);
+                        console.error('錯誤堆疊:', error.stack);
+
+                        // 嘗試提供更具體的錯誤訊息
+                        let errorMessage = '無法載入資料，請稍後再試';
+                        if (error.message) {
+                            errorMessage += `\n詳細錯誤: ${error.message}`;
+                        }
+
+                        swal('錯誤', errorMessage, 'error');
+
+                        // 在分類標籤中顯示錯誤訊息
+                        $('#category-table-body').html(`
+                            <tr>
+                                <td colspan="6" class="text-center text-danger">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    載入失敗: ${error.message || '未知錯誤'}
+                                    <br>
+                                    <small>請檢查開發者工具的 Console 和 Network 標籤查看詳細錯誤</small>
+                                </td>
+                            </tr>
+                        `);
+                    }
+
+                    // 渲染分類表格
+                    function renderCategoriesTable(data) {
+                        try {
+                            // 檢查是否有數據
+                            if (!data || data.length === 0) {
+                                $('#category-table-body').html('<tr><td colspan="6" class="text-center">沒有分類資料</td></tr>');
+                                return;
+                            }
+
+                            // 銷毀現有的 DataTable (如果存在)
+                            if ($.fn.DataTable.isDataTable('#category-datatables')) {
+                                categoryTable.destroy();
+                            }
+
+                            // 生成表格行
+                            const tableBody = $('#category-table-body');
+                            tableBody.empty();
+
+                            data.forEach(cat => {
+                                const iconHtml = cat.icon
+                                    ? `<img src="${cat.icon}" width="32" />`
+                                    : `<img src="/assets/img/FUEN42/GhostToys_Icon_Cute.ico" width="32" />`;
+
+                                // 修改：使用 badge 顯示公開/隱藏狀態
+                                const statusBadge = cat.isVisible
+                                    ? '<span class="badge badge-success">公開</span>'
+                                    : '<span class="badge badge-count">隱藏</span>';
+
+                                const row = `
+                                    <tr>
+                                        <td><input type="checkbox" class="category-row-check" data-id="${cat.id}" /></td>
+                                        <td>${cat.id}</td>
+                                        <td>${cat.categoryName}</td>
+                                        <td>${iconHtml}</td>
+                                        <td>${statusBadge}</td>
+                                        <td>
+                                            <a href="#" class="edit-category" data-id="${cat.id}">
+                                                <i class="fa fa-edit" title="編輯"></i>
+                                            </a>
+                                            &nbsp;
+                                            <a href="#" class="delete-category" data-id="${cat.id}">
+                                                <i class="fa fa-times text-danger" title="刪除"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                `;
+
+                                tableBody.append(row);
+                            });
+
+                            // 初始化分類表格
+                            initializeCategoryTable();
+
+                            // 確保表格重新綁定事件
+                            bindEventHandlers();
+                        } catch (error) {
+                            console.error('渲染分類表格時發生錯誤:', error);
+                            swal('錯誤', '渲染分類表格時發生錯誤，請重新整理頁面', 'error');
+                        }
+                    }
+
+                    // 初始化 DataTables
+                    function initializeTables() {
+                        initializeNewsTable();
+                        initializeCategoryTable();
+                    }
+
+                    // 初始化新聞表格
+                    function initializeNewsTable() {
+                        try {
+                            // 銷毀現有的 newsTable 實例（如果存在）
+                            if ($.fn.DataTable.isDataTable('#news-datatables')) {
+                                $('#news-datatables').DataTable().destroy();
+                            }
+
+                            newsTable = $('#news-datatables').DataTable({
+                                responsive: true,
+                                autoWidth: false,
+                                "destroy": true,
+                                "columnDefs": [
+                                    { "orderable": false, "targets": [0, 1, 3, 4, 5, 8, 9] }, // 禁用指定欄位的排序
+                                    { "width": "4%", "targets": 0 },    // 選取列
+                                    { "width": "4%", "targets": 1 },    // 置頂列
+                                    { "width": "4%", "targets": 2 },    // 編號列
+                                    { "width": "36%", "targets": 3 },   // 文章標題列
+                                    { "width": "8%", "targets": 4 },    // 分類列
+                                    { "width": "8%", "targets": 5 },    // 發文者列
+                                    { "width": "12%", "targets": 6 },   // 發布時間列
+                                    { "width": "12%", "targets": 7 },   // 更新時間列
+                                    { "width": "4%", "targets": 8 },   // 狀態列
+                                    { "width": "8%", "targets": 9 }    // 操作列
+                                ],
+                                "initComplete": function(settings, json) {
+                                    // 在表格初始化完成後，確保未來發布的時間顯示為紅色粗體
+                                    markFuturePublishDates();
+                                },
+                                "drawCallback": function(settings) {
+                                    // 每次重繪表格時也要檢查
+                                    markFuturePublishDates();
+                                }
+                            });
+                        } catch (error) {
+                            console.error('初始化新聞表格時發生錯誤:', error);
+                        }
+                    }
+
+                    // 初始化分類表格
+                    function initializeCategoryTable() {
+                        try {
+                            categoryTable = $('#category-datatables').DataTable({
+                                responsive: true,
+                                autoWidth: false,
+                                "destroy": true, // 確保正確銷毀
+                                "columnDefs": [
+                                    { "orderable": false, "targets": [0, 2, 3, 4, 5] }, // 禁用選取、名稱、圖示、顯示隱藏、操作欄位的排序
+                                    { "width": "5%", "targets": 0 },    // 選取列
+                                    { "width": "5%", "targets": 1 },    // 編號列
+                                    { "width": "30%", "targets": 2 },   // 名稱列
+                                    { "width": "20%", "targets": 3 },   // 圖示列
+                                    { "width": "15%", "targets": 4 },   // 顯示/隱藏列
+                                    { "width": "17%", "targets": 5 }    // 操作列
+                                ]
+                            });
+                        } catch (error) {
+                            console.error('初始化分類表格時發生錯誤:', error);
+                        }
+                    }
+
+                    // 綁定編輯和刪除的事件處理函數
+                    function bindEventHandlers() {
+                        // 使用事件委派 - 綁定編輯按鈕事件
+                        $(document).off('click', '.edit-category').on('click', '.edit-category', function(e) {
+                            e.preventDefault();
+                            const id = $(this).data('id');
+                            fetchCategoryForEdit(id);
+                        });
+
+                        // 使用事件委派 - 綁定直接刪除按鈕事件
+                        $(document).off('click', '.delete-category').on('click', '.delete-category', function(e) {
+                            e.preventDefault();
+                            const id = $(this).data('id');
+                            confirmDelete(id);
+                        });
+                    }
+
+                    // 取得要編輯的分類資料
+                    function fetchCategoryForEdit(id) {
+                        showGlobalLoader();
+
+                        fetch(`${apiBaseUrl}/categories/${id}`) // 統一使用 NewsApiController
+                            .then(handleResponse)
+                            .then(category => {
+                                // 填充表單
+                                $('#edit-categoryId').val(category.id);
+                                $('#edit-categoryName').val(category.categoryName);
+                                $('#edit-categoryIcon').val(category.icon);
+                                $('#edit-isVisible').prop('checked', category.isVisible);
+
+                                // 顯示 Modal
+                                const editModal = new bootstrap.Modal(document.getElementById('editCategoryModal'));
+                                editModal.show();
+                            })
+                            .catch(error => {
+                                console.error('取得分類資料出錯:', error);
+                                swal('錯誤', '無法載入分類資料，請稍後再試', 'error');
+                            })
+                            .finally(hideGlobalLoader);
+                    }
+
+                    // 更新分類按鈕點擊事件
+                    $('#updateCategoryBtn').on('click', function() {
+                        const id = $('#edit-categoryId').val();
+                        const categoryData = {
+                            id: parseInt(id),
+                            categoryName: $('#edit-categoryName').val(),
+                            icon: $('#edit-categoryIcon').val(),
+                            isVisible: $('#edit-isVisible').prop('checked')
+                        };
+
+                        // 驗證表單
+                        if (!categoryData.categoryName) {
+                            swal('錯誤', '請輸入分類名稱', 'error');
+                            return;
+                        }
+
+                        // 顯示載入中
+                        showGlobalLoader();
+
+                        // 發送 API 請求更新分類
+                        fetch(`${apiBaseUrl}/categories/${id}`, { // 統一使用 NewsApiController
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(categoryData)
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('更新分類失敗');
+                            }
+                            return response.json();
+                        })
+                        .then(result => {
+                            // 關閉 Modal
+                            const editModal = bootstrap.Modal.getInstance(document.getElementById('editCategoryModal'));
+                            editModal.hide();
+
+
+                            // 顯示成功訊息並重新載入分類
+                            showSuccessMessage(`已成功更新分類「${categoryData.categoryName}」!`);
+                            loadCategories();
+                        })
+                        .catch(error => {
+                            console.error('更新分類出錯:', error);
+                            swal('錯誤', '更新分類失敗，請稍後再試', 'error');
+                            hideGlobalLoader();
+                        });
+                    });
+
+                    // 確認刪除對話框
+                    function confirmDelete(id) {
+                        swal({
+                            title: '確定要刪除此分類嗎？',
+                            text: '此操作無法復原，如果有公告使用此分類，將無法刪除。',
+                            icon: 'warning',
+                            buttons: {
+                                cancel: {
+                                    text: "取消",
+                                    value: false,
+                                    visible: true
+                                },
+                                confirm: {
+                                    text: "確定刪除",
+                                    value: true
+                                }
+                            },
+                            dangerMode: true,
+                        })
+                        .then((willDelete) => {
+                            if (willDelete) {
+                                deleteCategory(id);
+                            }
+                        });
+                    }
+
+                    // 刪除分類
+                    function deleteCategory(id) {
+                        showGlobalLoader();
+
+                        fetch(`${apiBaseUrl}/categories/${id}`, { // 統一使用 NewsApiController
+                            method: 'DELETE'
+                        })
+                        .then(response => {
+                            if (response.status === 409) {
+                                // 處理衝突情況（有公告使用此分類）
+                                return response.text().then(text => {
+                                    throw new Error(text || '此分類正在被使用，無法刪除');
+                                });
+                            }
+                            if (!response.ok) {
+                                throw new Error('刪除失敗');
+                            }
+                            return response.json();
+                        })
+                        .then(result => {
+                            // 如果 Modal 是打開的，就關閉它
+                            const editModal = bootstrap.Modal.getInstance(document.getElementById('editCategoryModal'));
+                            if (editModal) editModal.hide();
+
+                            // 顯示成功訊息並重新載入分類
+                            showSuccessMessage('分類已成功刪除!');
+                            loadCategories();
+                        })
+                        .catch(error => {
+                            console.error('刪除分類出錯:', error);
+                            swal('錯誤', error.message || '刪除分類失敗，請稍後再試', 'error');
+                            hideGlobalLoader();
+                        });
+                    }
+
+                    // Modal 中的刪除按鈕點擊事件
+                    $('#deleteCategoryBtn').on('click', function() {
+                        const id = $('#edit-categoryId').val();
+                        confirmDelete(id);
+                    });
+
+                    // 新增分類 Modal 儲存按鈕事件
+                    $('#saveCategoryBtn').on('click', function () {
+                    const categoryData = {
+                        categoryName: $('#add-categoryName').val(),
+                        icon: $('#add-categoryIcon').val(),
+                        isVisible: $('#add-isVisible').prop('checked')
+                    };
+
+            // 驗證表單
+            if (!categoryData.categoryName) {
+                swal('錯誤', '請輸入分類名稱', 'error');
+                return;
+            }
+
+            showGlobalLoader();
+
+            // 發送 API 請求新增分類
+            fetch(`${apiBaseUrl}/categories`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(categoryData)
+            })
+                .then(handleResponse)
+                .then(data => {
+                    // 先隱藏載入器
+                    hideGlobalLoader();
+                    
+                    // 關閉 Modal
+                    const addModal = bootstrap.Modal.getInstance(document.getElementById('addCategoryModal'));
+                    if (addModal) {
+                        addModal.hide();
+                    }
+
+                    // 清空表單
+                    $('#add-categoryName').val('');
+                    $('#add-categoryIcon').val('');
+                    $('#add-isVisible').prop('checked', true);
+                    
+                    // 顯示成功訊息
+                    swal({
+                        title: '成功',
+                        text: `已成功建立分類「${categoryData.categoryName}」!`,
+                        icon: 'success'
+                    }).then(() => {
+                        // 重新載入分類
+                        loadCategories();
+                    });
+                })
+                .catch(error => {
+                    console.error('新增分類出錯:', error);
+                    hideGlobalLoader();
+                    swal('錯誤', '新增分類失敗，請稍後再試', 'error');
+                });
+            });
+
+            // 顯示成功訊息
+            function showSuccessMessage(message) {
+                $('#category-success-text').text(message);
+                $('#category-success-message').fadeIn();
+
+                // 自動隱藏成功訊息
+                setTimeout(() => {
+                $('#category-success-message').fadeOut('slow');
+                }, 3000);
+            }
+
+                    // 當tab切換時重新調整DataTable欄寬
+                    $('a[data-bs-toggle="pill"]').on('shown.bs.tab', function (e) {
+                        let tabId = $(e.target).attr('href');
+
+                        // 延遲執行以確保 DOM 已完全渲染
+                        setTimeout(function () {
+                            if (tabId === "#pills-news") {
+                                // 調整新聞表格寬度
+                                if (newsTable) {
+                                    newsTable.columns.adjust().responsive.recalc();
+                                    markFuturePublishDates(); // 確保在切換到新聞頁籤時重新標記未發布的日期
+                                }
+                            } else if (tabId === "#pills-category") {
+                                // 切換到分類頁時，刷新分類表格
+                                loadCategories();
+                            }
+                        }, 10);
+                    });
+
+                    // 全選功能 - 公告文章 (修改現有功能以支持批量刪除)
+                    $('#news-check-all').on('change', function () {
+                        $('.news-row-check').prop('checked', $(this).prop('checked'));
+                        updateBatchDeleteButtonState(); // 新增：更新批量刪除按鈕狀態
+                    });
+
+                    // 全選功能 - 公告分類 (修改以支持批量刪除)
+                    $('#category-check-all').on('change', function () {
+                        $('.category-row-check').prop('checked', $(this).prop('checked'));
+                        updateCategoryBatchDeleteButtonState(); // 新增：更新分類批量刪除按鈕狀態
+                    });
+
+                    // 監聽個別新聞 checkbox 變化，更新全選狀態和批量刪除按鈕
+                    $(document).on('change', '.news-row-check', function () {
+                        updateNewsCheckAllState();
+                        updateBatchDeleteButtonState();
+                    });
+
+                    // 更新新聞全選 checkbox 狀態
+                    function updateNewsCheckAllState() {
+                        const totalCheckboxes = $('.news-row-check').length;
+                        const checkedCheckboxes = $('.news-row-check:checked').length;
+
+                        $('#news-check-all').prop('indeterminate', checkedCheckboxes > 0 && checkedCheckboxes < totalCheckboxes);
+                        $('#news-check-all').prop('checked', checkedCheckboxes === totalCheckboxes && totalCheckboxes > 0);
+                    }
+
+                    // 更新批量刪除按鈕狀態
+                    function updateBatchDeleteButtonState() {
+                        const checkedCount = $('.news-row-check:checked').length;
+                        const $batchDeleteBtn = $('#batch-delete-btn');
+
+                        if (checkedCount > 0) {
+                            $batchDeleteBtn.prop('disabled', false)
+                                .removeClass('btn-primary')
+                                .addClass('btn-danger')
+                                .find('.btn-label i').removeClass('far fa-trash-alt').addClass('fas fa-trash-alt');
+
+                            // 更新按鈕文字
+                            const buttonText = $batchDeleteBtn.find('span:not(.btn-label)');
+                            if (buttonText.length) {
+                                buttonText.text(`批量刪除 (${checkedCount})`);
+                            } else {
+                                $batchDeleteBtn.append(`<span class="ms-2">批量刪除 (${checkedCount})</span>`);
+                            }
+                        } else {
+                            $batchDeleteBtn.prop('disabled', true)
+                                .removeClass('btn-danger')
+                                .addClass('btn-primary')
+                                .find('.btn-label i').removeClass('fas fa-trash-alt').addClass('far fa-trash-alt');
+
+                            // 恢復按鈕文字
+                            const buttonText = $batchDeleteBtn.find('span:not(.btn-label)');
+                            if (buttonText.length) {
+                                buttonText.text('批量刪除');
+                            } else {
+                                $batchDeleteBtn.append('<span class="ms-2">批量刪除</span>');
+                            }
+                        }
+                    }
+
+                    // 分類批量刪除按鈕點擊事件
+                    $('#category-batch-delete-btn').on('click', function () {
+                        const selectedIds = $('.category-row-check:checked').map(function () {
+                            return parseInt($(this).data('id'));
+                        }).get();
+
+                        if (selectedIds.length === 0) {
+                            swal('提示', '請先選擇要刪除的分類', 'warning');
+                            return;
+                        }
+
+                        // 確認刪除對話框
+                        swal({
+                            title: '確認批量刪除分類',
+                            text: `您即將刪除 ${selectedIds.length} 個分類，此操作無法復原。\n注意：正在被公告使用的分類將無法刪除。`,
+                            icon: 'warning',
+                            buttons: {
+                                cancel: {
+                                    text: "取消",
+                                    value: false,
+                                    visible: true
+                                },
+                                confirm: {
+                                    text: "確定刪除",
+                                    value: true
+                                }
+                            },
+                            dangerMode: true,
+                        })
+                        .then((willDelete) => {
+                            if (willDelete) {
+                                performCategoryBatchDelete(selectedIds);
+                            }
+                        });
+                    });
+
+                    // 執行分類批量刪除
+                    function performCategoryBatchDelete(ids) {
+                        showGlobalLoader();
+
+                        fetch(`${apiBaseUrl}/categories/batch-delete`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ ids: ids })
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(`批量刪除失敗: ${response.status}`);
+                            }
+                            return response.json();
+                        })
+                        .then(result => {
+                            if (result.success) {
+                                // 顯示成功訊息
+                                const message = result.errors && result.errors.length > 0
+                                    ? `${result.message}\n\n失敗詳情:\n${result.errors.join('\n')}`
+                                    : result.message;
+
+                                swal({
+                                    title: '批量刪除完成',
+                                    text: message,
+                                    icon: result.errors && result.errors.length > 0 ? 'warning' : 'success'
+                                }).then(() => {
+                                    // 重新載入分類資料
+                                    loadCategories();
+                                });
+                            } else {
+                                throw new Error(result.message || '批量刪除失敗');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('批量刪除錯誤:', error);
+                            swal('錯誤', error.message || '批量刪除過程中發生錯誤，請稍後再試', 'error');
+                        })
+                        .finally(() => {
+                            hideGlobalLoader();
+                        });
+                    }
+
+                    // 初始化分類批量刪除按鈕狀態
+                    updateCategoryBatchDeleteButtonState();
+
+                    // 當 DataTable 重新繪製時，確保重新綁定分類批量刪除相關事件
+                    if (categoryTable) {
+                        categoryTable.on('draw', function () {
+                            updateCategoryCheckAllState();
+                            updateCategoryBatchDeleteButtonState();
+                        });
+                    }
+
+                    // 下拉選單改變時自動搜尋
+                    $('#category-filter, #author-filter, #status-filter').on('change', function () {
+                        performSearch();
+                    });
+
+                    // 分類狀態篩選改變時自動搜尋
+                    $('#category-status-filter').on('change', function () {
+                        performCategorySearch();
+                    });
+
+                    // 分類名稱篩選
+                    $('#category-name-filter').on('keyup', function () {
+                        performCategorySearch();
+                    });
+
+                    // 日期欄位改變時自動搜尋
+                    $('#start-date, #end-date').on('change', function () {
+                        performSearch();
+                    });
+
+                    // 實現真正的篩選搜尋功能
+                    function performSearch() {
+                        if (!newsTable) return;
+
+                        var categoryValue = $('#category-filter').val();
+                        var authorValue = $('#author-filter').val();
+                        var startDate = $('#start-date').val();
+                        var endDate = $('#end-date').val();
+                        var statusValue = $('#status-filter').val();
+
+                        // 清除之前的自定義篩選器，確保從完整資料集重新篩選
+                        clearCustomFilters();
+
+                        // 重設所有欄位的搜尋條件
+                        newsTable.columns().search('').draw(false);
+                        newsTable.search('').draw(false);
+
+                        // 建立自定義篩選條件
+                        $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+                            // 只針對 news-datatables 進行篩選
+                            if (settings.nTable.id !== 'news-datatables') {
+                                return true;
+                            }
+
+                            // 分類篩選 (第5欄 - index 4)
+                            if (categoryValue && data[4] !== categoryValue) {
+                                return false;
+                            }
+
+                            // 發文者篩選 (第6欄 - index 5)
+                            if (authorValue && data[5] !== authorValue) {
+                                return false;
+                            }
+
+                            // 狀態篩選 (第11欄 - index 10)
+                            if (statusValue) {
+                                // 使用與 DataTables 搜尋相同的方式處理 HTML 內容
+                                var statusCell = data[10];
+                                var tempDiv = document.createElement('div');
+                                tempDiv.innerHTML = statusCell;
+                                var statusText = tempDiv.textContent || tempDiv.innerText || '';
+                                statusText = statusText.trim();
+                                if (statusText !== statusValue) {
+                                    return false;
+                                }
+                            }
+
+                            // 日期篩選 (第7欄 - index 6)
+                            if (startDate || endDate) {
+                                var publishDate = data[6]; // 發布時間
+                                var dateMatch = publishDate && publishDate.match(/(\d{4}-\d{2}-\d{2})/);
+                                if (dateMatch) {
+                                    var rowDate = dateMatch[1];
+                                    if (startDate && rowDate < startDate) {
+                                        return false;
+                                    }
+                                    if (endDate && rowDate > endDate) {
+                                        return false;
+                                    }
+                                }
+                            }
+
+                            return true;
+                        });
+
+                        // 重新繪製表格
+                        newsTable.draw();
+                    }
+
+                    // 清除自定義篩選器的函數
+                    function clearCustomFilters() {
+                        // 清除所有自定義篩選器
+                        while ($.fn.dataTable.ext.search.length > 0) {
+                            $.fn.dataTable.ext.search.pop();
+                        }
+                    }
+
+                    // 分類篩選搜尋功能
+                    function performCategorySearch() {
+                        if (!categoryTable) return;
+
+                        var statusValue = $('#category-status-filter').val();
+                        var nameValue = $('#category-name-filter').val().toLowerCase();
+
+                        // 清除之前的自定義篩選器，確保從完整資料集重新篩選
+                        clearCustomFilters();
+
+                        // 重設所有欄位的搜尋條件
+                        categoryTable.columns().search('').draw(false);
+                        categoryTable.search('').draw(false);
+
+                        // 建立自定義篩選條件
+                        $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+                            // 只針對 category-datatables 進行篩選
+                            if (settings.nTable.id !== 'category-datatables') {
+                                return true;
+                            }
+
+                            // 名稱篩選 (第3欄 - index 2)
+                            if (nameValue && data[2].toLowerCase().indexOf(nameValue) === -1) {
+                                return false;
+                            }
+
+                            // 狀態篩選 (第5欄 - index 4，公開/隱藏欄位)
+                            if (statusValue) {
+                                try {
+                                    // 修改：使用 badge 內容進行篩選
+                                    var statusCell = data[4];
+                                    var tempDiv = document.createElement('div');
+                                    tempDiv.innerHTML = statusCell;
+                                    var statusText = tempDiv.textContent || tempDiv.innerText || '';
+                                    statusText = statusText.trim();
+
+                                    if (statusText !== statusValue) {
+                                        return false;
+                                    }
+                                } catch (error) {
+                                    console.error('篩選時發生錯誤:', error);
+                                    return true;
+                                }
+                            }
+
+                            return true;
+                        });
+
+                        // 重新繪製表格
+                        categoryTable.draw();
+                    }
+
+                    // 重設按鈕功能
+                    $('#resetNewsFilters').on('click', function () {
+                        // 清除所有篩選條件
+                        $('#category-filter').val('');
+                        $('#author-filter').val('');
+                        $('#start-date').val('');
+                        $('#end-date').val('');
+                        $('#status-filter').val('');
+
+                        // 清除DataTable的搜尋和自定義篩選
+                        clearCustomFilters();
+                        if (newsTable) {
+                            newsTable.search('').columns().search('').draw();
+                        }
+
+                        // 重設後重新調整表格寬度
+                        setTimeout(function () {
+                            if (newsTable) {
+                                newsTable.columns.adjust().responsive.recalc();
+                            }
+                        }, 10);
+                    });
+
+                    // 分類重設按鈕功能
+                    $('#resetCategoryFilters').on('click', function () {
+                        $('#category-name-filter').val('');
+                        $('#category-status-filter').val('');
+
+                        // 清除DataTable的搜尋和自定義篩選
+                        clearCustomFilters();
+                        if (categoryTable) {
+                            categoryTable.search('').columns().search('').draw();
+                        }
+
+                        // 重設後重新調整表格寬度
+                        setTimeout(function () {
+                            if (categoryTable) {
+                                categoryTable.columns.adjust().responsive.recalc();
+                            }
+                        }, 10);
+                    });
+
+                    // 監聽 Modal 關閉事件，確保在手動關閉時清除表單
+                    $('#addCategoryModal').on('hidden.bs.modal', function () {
+                        $('#add-categoryName').val('');
+                        $('#add-categoryIcon').val('');
+                        $('#add-isVisible').prop('checked', true);
+                    });
+
+                    // ===== 以下是新增的批量刪除功能，不影響現有篩選功能 =====
+
+                    // 監聽個別新聞 checkbox 變化，更新全選狀態和批量刪除按鈕
+                    $(document).on('change', '.news-row-check', function () {
+                        updateNewsCheckAllState();
+                        updateBatchDeleteButtonState();
+                    });
+
+                    // 全選功能 - 公告文章 (修改現有功能以支持批量刪除)
+                    $('#news-check-all').on('change', function () {
+                        $('.news-row-check').prop('checked', $(this).prop('checked'));
+                        updateBatchDeleteButtonState(); // 新增：更新批量刪除按鈕狀態
+                    });
+
+                    // 全選功能 - 公告分類 (修改以支持批量刪除)
+                    $('#category-check-all').on('change', function () {
+                        $('.category-row-check').prop('checked', $(this).prop('checked'));
+                        updateCategoryBatchDeleteButtonState(); // 新增：更新分類批量刪除按鈕狀態
+                    });
+
+                    // 監聽個別分類 checkbox 變化，更新全選狀態和批量刪除按鈕
+                    $(document).on('change', '.category-row-check', function () {
+                        updateCategoryCheckAllState();
+                        updateCategoryBatchDeleteButtonState();
+                    });
+
+                    // 更新分類全選 checkbox 狀態
+                    function updateCategoryCheckAllState() {
+                        const totalCheckboxes = $('.category-row-check').length;
+                        const checkedCheckboxes = $('.category-row-check:checked').length;
+
+                        $('#category-check-all').prop('indeterminate', checkedCheckboxes > 0 && checkedCheckboxes < totalCheckboxes);
+                        $('#category-check-all').prop('checked', checkedCheckboxes === totalCheckboxes && totalCheckboxes > 0);
+                    }
+
+                    // 更新分類批量刪除按鈕狀態
+                    function updateCategoryBatchDeleteButtonState() {
+                        const checkedCount = $('.category-row-check:checked').length;
+                        const $batchDeleteBtn = $('#category-batch-delete-btn');
+
+                        if (checkedCount > 0) {
+                            $batchDeleteBtn.prop('disabled', false)
+                                .removeClass('btn-primary')
+                                .addClass('btn-danger')
+                                .find('.btn-label i').removeClass('far fa-trash-alt').addClass('fas fa-trash-alt');
+
+                            // 更新按鈕文字
+                            const buttonText = $batchDeleteBtn.find('span:not(.btn-label)');
+                            if (buttonText.length) {
+                                buttonText.text(`批量刪除 (${checkedCount})`);
+                            } else {
+                                $batchDeleteBtn.append(`<span class="ms-2">批量刪除 (${checkedCount})</span>`);
+                            }
+                        } else {
+                            $batchDeleteBtn.prop('disabled', true)
+                                .removeClass('btn-danger')
+                                .addClass('btn-primary')
+                                .find('.btn-label i').removeClass('fas fa-trash-alt').addClass('far fa-trash-alt');
+
+                            // 恢復按鈕文字
+                            const buttonText = $batchDeleteBtn.find('span:not(.btn-label)');
+                            if (buttonText.length) {
+                                buttonText.text('批量刪除');
+                            } else {
+                                $batchDeleteBtn.append('<span class="ms-2">批量刪除</span>');
+                            }
+                        }
+                    }
+
+                    // 批量刪除按鈕點擊事件
+                    $('#batch-delete-btn').on('click', function () {
+                        const selectedIds = $('.news-row-check:checked').map(function () {
+                            return parseInt($(this).data('id'));
+                        }).get();
+
+                        if (selectedIds.length === 0) {
+                            swal('提示', '請先選擇要刪除的公告', 'warning');
+                            return;
+                        }
+
+                        // 確認刪除對話框
+                        swal({
+                            title: '確認批量刪除',
+                            text: `您即將刪除 ${selectedIds.length} 篇公告，此操作無法復原。`,
+                            icon: 'warning',
+                            buttons: {
+                                cancel: {
+                                    text: "取消",
+                                    value: false,
+                                    visible: true
+                                },
+                                confirm: {
+                                    text: "確定刪除",
+                                    value: true
+                                }
+                            },
+                            dangerMode: true,
+                        })
+                        .then((willDelete) => {
+                            if (willDelete) {
+                                performBatchDelete(selectedIds);
+                            }
+                        });
+                    });
+
+                    // 執行批量刪除
+                    function performBatchDelete(ids) {
+                        showGlobalLoader();
+
+                        fetch(`${apiBaseUrl}/news/batch-delete`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ ids: ids })
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(`批量刪除失敗: ${response.status}`);
+                            }
+                            return response.json();
+                        })
+                        .then(result => {
+                            if (result.success) {
+                                // 顯示成功訊息
+                                const message = result.errors && result.errors.length > 0
+                                    ? `${result.message}\n\n失敗詳情:\n${result.errors.join('\n')}`
+                                    : result.message;
+
+                                swal({
+                                    title: '批量刪除完成',
+                                    text: message,
+                                    icon: result.errors && result.errors.length > 0 ? 'warning' : 'success'
+                                }).then(() => {
+                                    // 重新載入頁面以更新資料
+                                    window.location.reload();
+                                });
+                            } else {
+                                throw new Error(result.message || '批量刪除失敗');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('批量刪除錯誤:', error);
+                            swal('錯誤', error.message || '批量刪除過程中發生錯誤，請稍後再試', 'error');
+                        })
+                        .finally(() => {
+                            hideGlobalLoader();
+                        });
+                    }
+
+                    // 初始化批量刪除按鈕狀態
+                    updateBatchDeleteButtonState();
+
+                    // 當 DataTable 重新繪製時，確保重新綁定批量刪除相關事件
+                    if (newsTable) {
+                        newsTable.on('draw', function () {
+                            updateNewsCheckAllState();
+                            updateBatchDeleteButtonState();
+                        });
+                    }
+                });
+    </script>
+}

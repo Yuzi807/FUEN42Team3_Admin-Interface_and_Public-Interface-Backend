@@ -1,0 +1,54 @@
+﻿@{
+    ViewData["Title"] = "文章編輯備份紀錄 | GhostToys魔型仔";
+    Layout = "_Layout";
+
+}
+
+    <h3 class="mb-4">文章編輯備份紀錄 <span id="post-id" class="badge bg-info"></span></h3>
+    <table class="table table-bordered table-striped history-table">
+        <thead class="table-dark">
+            <tr>
+                <th>備份時間</th>
+                <th>編輯者</th>
+                <th>內容預覽</th>
+            </tr>
+        </thead>
+        <tbody id="history-body">
+            <!-- 動態插入 -->
+        </tbody>
+    </table>
+    <button class="btn btn-secondary mt-3" onclick="window.close()">關閉視窗</button>
+
+<script>
+    // 取得網址參數 id
+    function getQueryId() {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('id') || '';
+    }
+    // 範例 mock 資料
+    const mockBackups = [
+        {
+            time: '2025-07-01 12:00',
+            editor: 'sweetpotato01',
+            content: '認識ASP.NET Core MVC 測試標題太長...\n內容段落A...\n內容段落B...'
+        },
+        {
+            time: '2025-07-01 11:40',
+            editor: 'admin001',
+            content: '認識ASP.NET Core MVC 測試標題太長...\n內容段落A...'
+        },
+        {
+            time: '2025-07-01 11:23',
+            editor: 'sweetpotato01',
+            content: '認識ASP.NET Core MVC 測試標題太長...'
+        }
+    ];
+    // 動態渲染
+    document.getElementById('post-id').textContent = 'ID: ' + getQueryId();
+    const tbody = document.getElementById('history-body');
+    mockBackups.forEach(b => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${b.time}</td><td>${b.editor}</td><td class='content-preview'>${b.content}</td>`;
+        tbody.appendChild(tr);
+    });
+</script>

@@ -1,0 +1,95 @@
+@model FUEN42Team3.Backend.Models.EfModels.News
+@{
+    ViewData["Title"] = "刪除公告 | GhostToys魔型仔";
+    Layout = "_Layout";
+}
+
+<div class="page-inner">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">刪除公告</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger">
+                        <h5 class="alert-heading">確定要刪除此公告嗎？</h5>
+                        <p>這個操作無法恢復。</p>
+                    </div>
+
+                    <div class="mb-4">
+                        <h5 class="border-bottom pb-2">公告詳細資訊</h5>
+                        <dl class="row">
+                            <dt class="col-sm-2">標題</dt>
+                            <dd class="col-sm-10">@Model.Title</dd>
+
+                            <dt class="col-sm-2">分類</dt>
+                            <dd class="col-sm-10">@Model.Category.CategoryName</dd>
+
+                            <dt class="col-sm-2">發布時間</dt>
+                            <dd class="col-sm-10">
+                                @(Model.PublishedAt.HasValue ? Model.PublishedAt.Value.ToString("yyyy-MM-dd HH:mm:ss") : "未發布")
+                            </dd>
+
+                            <dt class="col-sm-2">狀態</dt>
+                            <dd class="col-sm-10">
+                                @if (Model.Status.Name == "公開")
+                                {
+                                    <span class="badge bg-success">公開</span>
+                                }
+                                else if (Model.Status.Name == "隱藏")
+                                {
+                                    <span class="badge bg-secondary">隱藏</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-info">草稿</span>
+                                }
+                            </dd>
+
+                            <dt class="col-sm-2">置頂</dt>
+                            <dd class="col-sm-10">
+                                @(Model.IsPinned ? "是" : "否")
+                            </dd>
+
+                            <dt class="col-sm-2">作者</dt>
+                            <dd class="col-sm-10">@Model.User.UserName</dd>
+
+                            <dt class="col-sm-2">建立時間</dt>
+                            <dd class="col-sm-10">@Model.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</dd>
+
+                            <dt class="col-sm-2">更新時間</dt>
+                            <dd class="col-sm-10">@Model.UpdatedAt.ToString("yyyy-MM-dd HH:mm:ss")</dd>
+
+                            <dt class="col-sm-2">累積瀏覽數</dt>
+                            <dd class="col-sm-10">@Model.ViewCountTotal.ToString("N0")</dd>
+                        </dl>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(Model.ImageUrl))
+                    {
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2">公告圖片</h5>
+                            <img src="@Model.ImageUrl" alt="公告圖片" style="max-width: 300px; max-height: 200px; border-radius: 4px;" />
+                        </div>
+                    }
+
+                    <div class="mb-4">
+                        <h5 class="border-bottom pb-2">公告內容預覽</h5>
+                        <div class="border p-3 rounded bg-light">
+                            @Html.Raw(Model.Content)
+                        </div>
+                    </div>
+
+                    <form asp-action="Delete" method="post">
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <div class="d-flex justify-content-end gap-2">
+                            <a asp-action="Index" class="btn btn-secondary">返回列表</a>
+                            <button type="submit" class="btn btn-danger">確認刪除</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

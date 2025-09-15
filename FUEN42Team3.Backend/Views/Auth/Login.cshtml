@@ -1,0 +1,106 @@
+﻿@model FUEN42Team3.Backend.Models.ViewModels.LoginViewModel
+@{
+    ViewData["Title"] = "後台管理登入 | GhostToys魔型仔";
+    Layout = null;
+    var returnUrl = Context.Request.Query["returnUrl"].ToString();
+    var message = Context.Request.Query["message"].ToString();
+}
+
+<!DOCTYPE html>
+<html lang="zh-tw">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="~/assets/img/FUEN42/GhostToys_Icon_Cute.ico" type="image/x-icon" />
+    <link rel="stylesheet" href="~/assets/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/BackEndLogin.css" />
+</head>
+
+<body>
+    <!-- 背景裝飾 -->
+    <div class="shape-left"></div>
+    <div class="shape-right"></div>
+    <div class="dot-small"></div>
+    <div class="dot-medium"></div>
+    <div class="dot-large"></div>
+
+    <!-- 登入框 -->
+    <div class="login-container">
+        <div class="logo">
+            <img src="~/assets/img/FUEN42/GhostToys_Logo_Long_Cute.png" alt="GhostToys魔型仔">
+        </div>
+        <h2>後台管理</h2>
+
+        <!-- 顯示系統訊息 -->
+        <div id="system-message" class="alert alert-danger" style="display: none;">
+            <span id="message-content"></span>
+        </div>
+
+        <form asp-action="Login" asp-controller="Auth" method="post">
+            <input type="hidden" name="returnUrl" value="@returnUrl" />
+
+            <!-- 帳號 -->
+            <div class="form-group">
+                <input asp-for="Account" class="form-control" placeholder="帳號" />
+                <span asp-validation-for="Account" class="text-danger"></span>
+            </div>
+
+            <!-- 密碼 -->
+            <div class="form-group">
+                <input asp-for="Password" type="password" class="form-control" placeholder="密碼" />
+                <span asp-validation-for="Password" class="text-danger"></span>
+            </div>
+
+            <!-- 記住我（視需求而定） -->
+            <div class="row">
+                <div class="col-6">
+                    <div class="remember-me">
+                        <input asp-for="RememberMe" type="checkbox" id="remember" />
+                        <label for="remember" class="ms-2">記住帳號？</label>
+                    </div>
+
+                </div>
+                <div class="col-6 text-end">
+                    <a href="#" class="forgot-password">忘記密碼？</a>
+                </div>
+            </div>
+
+            <!-- 提交 -->
+            <button type="submit" class="btn btn-login">登入</button>
+        </form>
+
+        <!-- 顯示後端錯誤訊息 -->
+        <div class="text-danger mt-2">
+            @Html.ValidationSummary()
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            // 檢查 URL 參數中是否有特定訊息
+            const urlParams = new URLSearchParams(window.location.search);
+            const message = urlParams.get('message');
+            
+            if (message === 'Account_Deactivated') {
+                $('#message-content').text('您的帳號已被停用，請聯絡系統管理員。');
+                $('#system-message').show();
+            }
+        });
+    </script>
+
+    @section Scripts {
+        @{
+            await Html.RenderPartialAsync("_ValidationScriptsPartial");
+        }
+    }
+</body>
+
+</html>
+
+

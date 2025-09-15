@@ -1,0 +1,2856 @@
+﻿@{
+    ViewBag.Title = "訂單列表 | GhostToys魔型仔";
+    Layout = "_Layout";
+    <link rel="stylesheet" href="~/css/order-management.css" />
+}
+<div class="main-content">
+    <h1 class="mb-4">訂單管理</h1>
+
+    <!-- 篩選與搜尋面板 -->
+    <div class="card filter-panel">
+        <div class="filter-section">
+            <h5>基本篩選</h5>
+            <div class="row">
+                <div class="col-12 mb-3">
+                    <label for="statusFilter" class="form-label">訂單狀態</label>
+                    <select id="statusFilter" class="form-select">
+                        <option value="全部">全部</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-12 mb-3">
+                    <label for="categoryFilter" class="form-label">訂單類型</label>
+                    <select id="categoryFilter" class="form-select">
+                        <option value="全部">全部</option>
+                        <option value="預購">預購</option>
+                        <option value="現貨">現貨</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-6 mb-3">
+                    <label for="searchField" class="form-label">搜尋欄位</label>
+                    <select id="searchField" class="form-select">
+                        <option value="id">訂單 ID</option>
+                        <option value="user_id">用戶 ID</option>
+                        <option value="recipient_name">收件人姓名</option>
+                        <option value="phone">電話</option>
+                    </select>
+                </div>
+                <div class="col-6 mb-3">
+                    <label for="searchInput" class="form-label">關鍵字</label>
+                    <input id="searchInput" type="text" class="form-control" placeholder="輸入關鍵字">
+                </div>
+            </div>
+        </div>
+        <div class="filter-section">
+            <h5>時間篩選</h5>
+            <div class="row">
+                <div class="col-12 mb-3">
+                    <label for="dateStart" class="form-label">開始日期時間</label>
+                    <input id="dateStart" type="datetime-local" class="form-control">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12 mb-3">
+                    <label for="dateEnd" class="form-label">結束日期時間</label>
+                    <input id="dateEnd" type="datetime-local" class="form-control">
+                </div>
+            </div>
+        </div>
+        <div class="action-buttons">
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#barcodeModal">掃描條碼</button>
+            <button id="addOrderBtn" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#orderModal">新增訂單</button>
+
+        </div>
+    </div>
+
+    <!-- 訂單列表 -->
+    <div class="table-container card">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>訂單 ID</th>
+                    <th>用戶 ID</th>
+                    <th>總額</th>
+                    <th>狀態</th>
+                    <th>下單時間</th>
+                    <th>收件人</th>
+                    <th>電話</th>
+                    <th>類型</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="orderTableBody">
+                <!-- 動態生成訂單資料 -->
+            </tbody>
+        </table>
+    </div>
+
+
+
+    <!-- 分頁控制 -->
+    <div class="pagination-controls d-flex justify-content-between align-items-center mt-3">
+        <div class="pagination-info">
+            <label for="itemsPerPage" class="form-label me-2">每頁顯示:</label>
+            <select id="itemsPerPage" class="form-select d-inline-block" style="width: auto;">
+                <option value="5">5</option>
+                <option value="10" selected>10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+            </select>
+            <span id="totalItems" class="ms-3">總計 0 筆資料</span>
+        </div>
+
+        <!-- 原有的按鈕式分頁 -->
+        <div class="pagination-buttons d-none d-md-block">
+            <button class="btn btn-sm btn-outline-primary" id="firstPage">第一頁</button>
+            <button class="btn btn-sm btn-outline-primary" id="prevPage">上一頁</button>
+            <span id="pageInfo" class="ms-2 me-2"></span>
+            <button class="btn btn-sm btn-outline-primary" id="nextPage">下一頁</button>
+            <button class="btn btn-sm btn-outline-primary" id="lastPage">最後一頁</button>
+        </div>
+
+        <!-- Bootstrap 5 分頁元件 -->
+        <nav aria-label="訂單頁面導航" class="d-flex justify-content-center">
+            <ul class="pagination" id="paginationContainer">
+                <!-- 分頁連結將由JavaScript動態生成 -->
+            </ul>
+        </nav>
+    </div>
+
+    <!-- 新增/編輯訂單模態框 -->
+    <div class="modal fade" id="orderModal" tabindex="-1" aria-labelledby="orderModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="orderModalLabel">新增訂單</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="orderForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="userId" class="form-label">用戶 ID</label>
+                                <input type="number" class="form-control" id="userId" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="totalAmount" class="form-label">總額</label>
+                                <input type="number" class="form-control" id="totalAmount" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="status" class="form-label">狀態</label>
+                                <select class="form-select" id="status" required>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="paymentMethod" class="form-label">付款方式</label>
+                                <select class="form-select" id="paymentMethod" required>
+                                    <option value="">選擇付款方式</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="deliveryMethod" class="form-label">運送方式</label>
+                                <select class="form-select" id="deliveryMethod" required>
+                                    <option value="">選擇運送方式</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="shippingFee" class="form-label">運費</label>
+                                <input type="number" class="form-control" id="shippingFee" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="usedPoints" class="form-label">紅利點數</label>
+                                <input type="number" class="form-control" id="usedPoints" value="0">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="recipientName" class="form-label">收件人姓名</label>
+                                <input type="text" class="form-control" id="recipientName" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="address" class="form-label">地址</label>
+                                <input type="text" class="form-control" id="address" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="phone" class="form-label">電話</label>
+                                <input type="text" class="form-control" id="phone" required>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label class="form-label">訂購內容</label>
+                                <div id="orderItems" class="order-items-container">
+                                    <!-- 動態生成訂購內容 -->
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="addItem">新增產品</button>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label class="form-label">贈品</label>
+                                <div id="giftItems" class="gifts-container">
+                                    <!-- 動態生成贈品 -->
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="addGift">新增贈品</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="submitOrder">提交</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 條碼掃描模態框 -->
+    <div class="modal fade" id="barcodeModal" tabindex="-1" aria-labelledby="barcodeModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="barcodeModalLabel">掃描條碼</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="barcodeScanner" class="barcode-scanner">
+                        <video autoplay playsinline></video>
+                        <div class="barcode-overlay" id="barcodeStatusText">對準條碼進行掃描...</div>
+                    </div>
+                    <div class="mt-3">
+                        <label for="barcodeStatus" class="form-label">更新狀態</label>
+                        <select class="form-select" id="barcodeStatus">
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="submitBarcode">提交</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 編輯訂單模態框 -->
+    <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editModalLabel">編輯訂單</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editOrderForm">
+                        <input type="hidden" id="editOrderId" />
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="editUserId" class="form-label">用戶 ID</label>
+                                <input type="number" class="form-control" id="editUserId" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editTotalAmount" class="form-label">總額</label>
+                                <input type="number" class="form-control" id="editTotalAmount" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editStatus" class="form-label">狀態</label>
+                                <select class="form-select" id="editStatus" required>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editCategory" class="form-label">訂單類型</label>
+                                <select class="form-select" id="editCategory" required>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editPaymentMethod" class="form-label">付款方式</label>
+                                <select class="form-select" id="editPaymentMethod" required>
+                                    <option value="">選擇付款方式</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editDeliveryMethod" class="form-label">運送方式</label>
+                                <select class="form-select" id="editDeliveryMethod" required>
+                                    <option value="">選擇運送方式</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editShippingFee" class="form-label">運費</label>
+                                <input type="number" class="form-control" id="editShippingFee" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editUsedPoints" class="form-label">紅利點數</label>
+                                <input type="number" class="form-control" id="editUsedPoints" value="0">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editRecipientName" class="form-label">收件人姓名</label>
+                                <input type="text" class="form-control" id="editRecipientName" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editAddress" class="form-label">地址</label>
+                                <input type="text" class="form-control" id="editAddress" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editPhone" class="form-label">電話</label>
+                                <input type="text" class="form-control" id="editPhone" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editZipCode" class="form-label">郵遞區號</label>
+                                <input type="text" class="form-control" id="editZipCode">
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label class="form-label">訂購內容</label>
+                                <div id="editOrderItems" class="order-items-container">
+                                    <!-- 動態生成訂購內容 -->
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="addEditItem">新增產品</button>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label class="form-label">贈品</label>
+                                <div id="editGiftItems" class="gifts-container">
+                                    <!-- 動態生成贈品 -->
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="addEditGift">新增贈品</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="saveEdit">儲存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ★★★★★★★ 放在這裡！table外部，結構清楚 ★★★★★★★ -->
+<template id="order-row-template">
+    <tr>
+        <td class="order-id"></td>
+        <td class="user-id"></td>
+        <td class="total-amount"></td>
+        <td>
+            <select class="form-select status-select">
+            </select>
+        </td>
+        <td class="order-date"></td>
+        <td class="recipient-name"></td>
+        <td class="phone"></td>
+        <td>
+            <button class="btn btn-sm btn-outline-primary action-btn edit-btn">編輯</button>
+            <button class="btn btn-sm btn-outline-danger action-btn delete-btn">刪除</button>
+        </td>
+    </tr>
+</template>
+<!-- 你的 script 或 section Scripts 寫在 template 之下 -->
+@section Scripts {
+    <script>
+        let orders = [];
+        let itemsPerPage = 10;
+        let currentPage = 1;
+
+                // 修改 fetchOrders 函數
+        // 修改 fetchOrders 函數
+        async function fetchOrders(pageNumber = 1, pageSize = 10) {
+          try {
+            console.log(`開始獲取訂單資料，頁碼：${pageNumber}，每頁筆數：${pageSize}...`);
+            const response = await fetch(`/api/OrdersAPI?pageNumber=${pageNumber}&pageSize=${pageSize}`);
+
+            if (!response.ok) {
+              throw new Error(`API 請求失敗: (${response.status})`);
+            }
+
+            const result = await response.json();
+            console.log('訂單API回應:', result);
+
+            // 確保我們正確處理 API 回傳的資料結構
+            if (result.success) {
+              orders = result.data || [];
+              currentPage = result.currentPage || 1;
+              itemsPerPage = result.pageSize || 10;
+              const totalItems = result.totalCount || 0;
+              const totalPages = result.totalPages || 1;
+
+              console.log(`成功獲取 ${orders.length} 筆訂單資料，總計 ${totalItems} 筆，共 ${totalPages} 頁`);
+
+              // 更新分頁信息
+              updatePaginationInfo(totalItems, totalPages, currentPage);
+            } else {
+              console.error('API 回傳失敗:', result.message);
+              throw new Error(result.message || '獲取訂單資料失敗');
+            }
+
+            // 確保狀態列表已載入，然後再渲染訂單
+            if (!window.orderStatusList || window.orderStatusList.length === 0) {
+              await loadOrderStatuses();
+            }
+
+            // 渲染訂單列表，不需要本地分頁邏輯
+            renderOrders(orders);
+
+          } catch (error) {
+            console.error('獲取訂單失敗:', error);
+            showToast(`無法連接到後端服務：${error.message}`, 'danger');
+          }
+        }
+
+        // async function fetchOrders() {
+        //   try {
+        //     console.log('開始獲取訂單資料...');
+        //     const resp = await fetch('/api/OrdersAPI');
+        //     const text = await resp.text();
+        //     console.log('API回應:', text);
+
+        //     if (!resp.ok) throw new Error(`(${resp.status}) ${text || '無法獲取訂單數據'}`);
+
+        //     let json;
+        //     try {
+        //       json = JSON.parse(text || '{}');
+        //     } catch (parseError) {
+        //       console.error('JSON解析錯誤:', parseError);
+        //       throw new Error('回應資料格式錯誤');
+        //     }
+
+        //     orders = json.data ?? json ?? [];
+        //     console.log('獲取到的訂單數量:', orders.length);
+        //     filterOrders();
+        //   } catch (e) {
+        //     console.error('獲取訂單失敗:', e);
+        //     alert(`無法連接到後端服務：${e.message}`);
+        //   }
+        // }
+        // 修改 renderOrders 函數，去除本地分頁邏輯
+        function renderOrders(list) {
+          try {
+            console.log('渲染訂單列表，數量:', list.length);
+            const tbody = document.getElementById('orderTableBody');
+            tbody.innerHTML = '';
+
+            if (!Array.isArray(list) || list.length === 0) {
+              tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4">沒有符合條件的訂單資料</td></tr>';
+              return;
+            }
+
+            // 直接渲染整個列表，不做本地分頁
+            const statuses = window.orderStatusList || [];
+
+            for (const order of list) {
+              const tr = document.createElement('tr');
+
+              // 確保所有欄位都有預設值，避免 undefined 顯示在畫面上
+              tr.innerHTML = `
+                <td>${order.id || ''}</td>
+                <td>${order.user_id || ''}</td>
+                <td>${order.total_amount || 0}</td>
+                <td>
+                  <select class="form-select status-select" data-id="${order.id}">
+                    ${statuses.map(s => `<option value="${s.statusName}" ${order.status === s.statusName ? 'selected' : ''}>${s.statusName}</option>`).join('')}
+                  </select>
+                </td>
+                <td>${formatDateTime(order.order_date || new Date())}</td>
+                <td>${order.recipient_name || ''}</td>
+                <td>${order.phone || ''}</td>
+                <td>${order.category || '現貨'}</td>
+                <td>
+                  <button class="btn btn-sm btn-outline-primary action-btn edit-btn" data-id="${order.id}">編輯</button>
+                  <button class="btn btn-sm btn-outline-danger action-btn delete-btn" data-id="${order.id}">刪除</button>
+                </td>
+              `;
+
+              tbody.appendChild(tr);
+            }
+
+            // 綁定事件
+            document.querySelectorAll('.status-select').forEach(select => {
+              select.addEventListener('change', async function() {
+                await updateOrderStatus(this);
+              });
+            });
+
+          } catch (error) {
+            console.error('渲染訂單列表時發生錯誤:', error);
+            const tbody = document.getElementById('orderTableBody');
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-danger">渲染訂單時發生錯誤</td></tr>';
+          }
+        }
+
+
+        // 渲染
+        // 修改渲染訂單列表函數
+        // function renderOrders(list) {
+        //   const tbody = document.getElementById('orderTableBody');
+        //   tbody.innerHTML = '';
+
+        //   const start = (currentPage - 1) * itemsPerPage;
+        //   const end = start + itemsPerPage;
+        //   const pageItems = list.slice(start, end);
+
+        //   const statuses = window.orderStatusList || [];
+
+        //   for (const o of pageItems) {
+        //     const tr = document.createElement('tr');
+        //     tr.innerHTML = `
+        //       <td>${o.id}</td>
+        //       <td>${o.user_id}</td>
+        //       <td>${o.total_amount}</td>
+        //       <td>
+        //         <select class="form-select status-select" data-id="${o.id}">
+        //           ${statuses.map(s => `<option value="${s.statusName}" ${o.status === s.statusName ? 'selected' : ''}>${s.statusName}</option>`).join('')}
+        //         </select>
+        //       </td>
+        //       <td>${formatDateTime(o.order_date)}</td>
+        //       <td>${o.recipient_name ?? ''}</td>
+        //       <td>${o.phone ?? ''}</td>
+        //       <td>${o.category ?? ''}</td>
+        //       <td>
+        //         <button class="btn btn-sm btn-outline-primary action-btn edit-btn" data-id="${o.id}">編輯</button>
+        //         <button class="btn btn-sm btn-outline-danger action-btn delete-btn" data-id="${o.id}">刪除</button>
+        //       </td>
+        //     `;
+        //     tbody.appendChild(tr);
+        //   }
+
+        //   updatePaginationInfo(list.length);
+        // }
+
+        // 事件委派：狀態、編輯、刪除
+        document.getElementById('orderTableBody').addEventListener('change', async (e) => {
+          if (e.target.matches('.status-select')) {
+            await updateOrderStatus(e.target);
+          }
+        });
+        document.getElementById('orderTableBody').addEventListener('click', async (e) => {
+          const id = e.target.dataset.id;
+          if (e.target.matches('.edit-btn')) {
+            showEditModal(id);
+          }
+          if (e.target.matches('.delete-btn')) {
+            confirmDeleteOrder(id);
+          }
+        });
+
+       async function updateOrder() {
+          try {
+            console.log("[edit] 開始更新訂單…");
+
+            // 1) 付款/運送方式（編輯表單）
+            const paymentMethodSelect  = document.getElementById("editPaymentMethod");
+            const deliveryMethodSelect = document.getElementById("editDeliveryMethod");
+            if (!paymentMethodSelect || !deliveryMethodSelect) {
+              alert("找不到編輯表單的付款/運送方式欄位（id=editPaymentMethod / editDeliveryMethod）");
+              return;
+            }
+            const payment_method  = paymentMethodSelect.selectedOptions?.[0]?.text?.trim() ?? "";
+            const delivery_method = deliveryMethodSelect.selectedOptions?.[0]?.text?.trim() ?? "";
+
+            // 2) 收集「編輯表單」的商品明細（容器：#editOrderItems）
+            const rows = document.querySelectorAll("#editOrderItems .order-item");
+            console.log("[edit] 訂單項目數量:", rows.length);
+
+            const details = Array.from(rows).map(row => {
+              const productSelect = row.querySelector(".product-select");
+              const qtyInput      = row.querySelector(".quantity");
+              const priceInput    = row.querySelector(".unit-price");
+              const discInput     = row.querySelector(".discount-amount");
+
+              const pid   = Number(productSelect?.value ?? 0);
+              const pname = productSelect?.selectedOptions?.[0]?.text?.trim() ?? "";
+              const qty   = Number(qtyInput?.value ?? 0);
+              const price = Number(priceInput?.value ?? 0);
+              const disc  = Number(discInput?.value ?? 0);
+
+              return {
+                productId: pid,
+                productName: pname,
+                quantity: qty,
+                unitPrice: price,
+                discountAmount: disc,
+                discountPercent: null
+              };
+            }).filter(d => d.productId > 0 && d.quantity > 0);
+
+            if (!details.length) {
+              alert("請至少加入一項商品（details 不可為空）");
+              return;
+            }
+
+            // 3) 小工具：抓數字/文字/選單文字（編輯表單）
+            const num = id => {
+              const v = (document.getElementById(id)?.value ?? "").toString().trim();
+              const n = Number(v.replace(/[, ]/g,""));
+              return Number.isFinite(n) ? n : 0;
+            };
+            const txt = id => (document.getElementById(id)?.value ?? "").trim();
+            const sel = id => {
+              const el = document.getElementById(id);
+              return el?.selectedOptions?.[0]?.text?.trim() ?? "";
+            };
+
+            // 4) 組 payload（snake_case）
+            const id = Number(document.getElementById("editOrderId")?.value ?? 0);
+            if (!id) { alert("找不到訂單 ID"); return; }
+
+            const payload = {
+              id,
+              user_id:         num("editUserId"),
+              total_amount:    num("editTotalAmount"),
+              shipping_fee:    num("editShippingFee"),
+              used_points:     num("editUsedPoints"),
+              status:          sel("editStatus"),
+              category:        sel("editCategory"),
+              payment_method,          // 用名稱
+              delivery_method,         // 用名稱
+              recipient_name:  txt("editRecipientName"),
+              address:         txt("editAddress"),
+              phone:           txt("editPhone"),
+              zip_code:        txt("editZipCode"),
+              order_date:      new Date().toISOString(), // 後端可忽略
+              details,
+              gifts: [] // 需要時再收集
+            };
+
+            console.log("[edit] Update payload:", payload);
+
+            // 5) 發送 PUT
+            const res = await fetch(`/api/OrdersAPI/${id}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) {
+              const body = await res.text();
+              throw new Error(body || `更新失敗 (${res.status})`);
+            }
+
+            alert("更新成功");
+            // TODO: 關閉編輯視窗 / 重新載入列表
+          } catch (err) {
+            console.error("[edit] 更新訂單錯誤:", err);
+            alert(err.message || "更新發生錯誤");
+          }
+        }
+        //         async function updateOrder() {
+        //   try {
+        //     const payload = buildOrderPayload({ isEdit: true });
+        //     if (!payload.id) throw new Error("找不到訂單 ID");
+
+        //     const res = await fetch(`/api/OrdersAPI/${payload.id}`, {
+        //       method: "PUT",
+        //       headers: { "Content-Type": "application/json" },
+        //       body: JSON.stringify(payload)
+        //     });
+
+        //     if (!res.ok) {
+        //       const body = await res.text();
+        //       throw new Error(body || `更新失敗 (${res.status})`);
+        //     }
+        //     alert("更新成功");
+        //   } catch (err) {
+        //     console.error(err);
+        //     alert(err.message || "更新發生錯誤");
+        //   }
+        // }
+
+        async function createOrder() {
+          try {
+            console.log("開始創建訂單...");
+
+            // 1) 付款/運送方式
+            const paymentMethodSelect  = document.getElementById("paymentMethod");
+            const deliveryMethodSelect = document.getElementById("deliveryMethod");
+            if (!paymentMethodSelect || !deliveryMethodSelect) {
+              alert("找不到付款/運送方式欄位（id=paymentMethod / deliveryMethod）");
+              return;
+            }
+            const payment_method  = paymentMethodSelect.selectedOptions?.[0]?.text?.trim() ?? "";
+            const delivery_method = deliveryMethodSelect.selectedOptions?.[0]?.text?.trim() ?? "";
+
+            // 2) 商品明細
+            const rows = document.querySelectorAll("#orderItems .order-item");
+            const details = Array.from(rows).map(row => {
+              const productSelect = row.querySelector(".product-select");
+              const qtyInput      = row.querySelector(".quantity");
+              const priceInput    = row.querySelector(".unit-price");
+              const discInput     = row.querySelector(".discount-amount");
+              return {
+                productId: Number(productSelect?.value ?? 0),
+                productName: productSelect?.selectedOptions?.[0]?.text?.trim() ?? "",
+                quantity: Number(qtyInput?.value ?? 0),
+                unitPrice: Number(priceInput?.value ?? 0),
+                discountAmount: Number(discInput?.value ?? 0),
+                discountPercent: null
+              };
+            }).filter(d => d.productId > 0 && d.quantity > 0);
+
+            if (!details.length) { alert("請至少加入一項商品（details 不可為空）"); return; }
+
+            // 3) 其他欄位
+            const num = id => {
+              const v = (document.getElementById(id)?.value ?? "").toString().trim();
+              const n = Number(v.replace(/[, ]/g,""));
+              return Number.isFinite(n) ? n : 0;
+            };
+            const txt = id => (document.getElementById(id)?.value ?? "").trim();
+            const sel = id => document.getElementById(id)?.selectedOptions?.[0]?.text?.trim() ?? "";
+
+            const data = {
+              id: 0,
+              user_id: num("userId"),
+              total_amount: num("totalAmount"),
+              shipping_fee: num("shippingFee"),
+              used_points: num("usedPoints"),
+              status: sel("status"),
+              category: sel("category"),
+              payment_method,
+              delivery_method,
+              recipient_name: txt("recipientName"),
+              address: txt("address"),
+              phone: txt("phone"),
+              zip_code: txt("zipCode"),
+              order_date: new Date().toISOString(),
+              details,
+              gifts: []
+            };
+
+            console.log("Create payload:", data);
+
+            // 4) 發送
+            const res = await fetch("/api/OrdersAPI", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(data)
+            });
+
+            const text = await res.text();
+            let json; try { json = JSON.parse(text); } catch {}
+            if (!res.ok || (json && json.success === false)) {
+              const msg = (json && json.message) || text || `新增失敗 (${res.status})`;
+              throw new Error(msg);
+            }
+
+            // 5) 成功後處理（把 TODO 換成這段）
+            if (typeof showToast === "function") showToast("訂單創建成功", "success"); else alert("新增成功");
+            const modalEl = document.getElementById("orderModal");
+            const modal   = window.bootstrap?.Modal?.getInstance?.(modalEl);
+            if (modal) modal.hide();
+            if (typeof cleanupModal === "function") setTimeout(cleanupModal, 300);
+            if (typeof fetchOrders === "function") await fetchOrders();
+          } catch (err) {
+            console.error("創建訂單錯誤:", err);
+            if (typeof showToast === "function") showToast(`訂單創建失敗：${err.message}`, "danger");
+            else alert(err.message || "新增發生錯誤");
+          }
+        }
+
+
+
+
+        // ===== 小工具：抓元素、文字、數字、選中文字 =====
+        const $ = (sel, root = document) => root.querySelector(sel);
+        const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+        const text = (sel) => ($(sel)?.value ?? "").trim();
+        const number = (sel) => {
+          const v = ($(sel)?.value ?? "").toString().trim();
+          const n = Number(v.replace(/[, ]/g, ""));
+          return Number.isFinite(n) ? n : 0;
+        };
+        const selectedText = (sel) => {
+          const el = $(sel);
+          if (!el) return "";
+          const opt = el.options[el.selectedIndex];
+          return (opt?.text ?? "").trim();
+        };
+
+        // ===== 依據你的 UI 蒐集商品明細：支援兩種來源 =====
+        // 1) 若你有全域陣列 editItems：[{productId, productName, quantity, unitPrice, discountAmount}]
+        // 2) 若沒有，就解析編輯表格 tbody > tr 上的 data-* 屬性或欄位
+        function collectDetailsFromUI() {
+          const rows = document.querySelectorAll("#editOrderItems .order-item");
+          const details = Array.from(rows).map(row => {
+            const productSelect = row.querySelector(".product-select");
+            const quantityInput = row.querySelector(".quantity");
+            const priceInput    = row.querySelector(".unit-price");
+            const discountInput = row.querySelector(".discount-amount");
+
+            const pid  = Number(productSelect?.value ?? 0);
+            const name = productSelect?.options[productSelect.selectedIndex]?.text?.trim() ?? "";
+            const qty  = Number(quantityInput?.value ?? 0);
+            const price= Number(priceInput?.value ?? 0);
+            const disc = Number(discountInput?.value ?? 0);
+
+            return {
+              productId: pid,
+              productName: name,
+              quantity: qty,
+              unitPrice: price,
+              discountAmount: disc,
+              discountPercent: null
+            };
+          }).filter(d => d.productId > 0 && d.quantity > 0);
+
+          console.log("有效商品筆數:", details.length, details);
+          return details;
+
+          /*
+          // 舊的 DOM 解析版本 - 已不需要
+          const rows = $$("#editItemsTable tbody tr");
+          return rows.map(tr => {
+            // 代碼邏輯...
+          }).filter(d => d.productId > 0 && d.quantity > 0);
+          */
+        }
+
+
+
+        // （若有贈品清單就解析；沒有可保留空陣列）
+        function collectGiftsFromUI() {
+          if (Array.isArray(window.editGifts) && window.editGifts.length) {
+            return window.editGifts.map(g => ({
+              giftId: Number(g.giftId ?? 0),
+              giftProductName: String(g.giftProductName ?? "").trim(),
+              quantity: Number(g.quantity ?? 1)
+            }));
+          }
+          const rows = $$("#editGiftsTable tbody tr");
+          return rows.map(tr => ({
+            giftId: Number(tr.dataset.giftId ?? $("input[name='giftId']", tr)?.value ?? 0),
+            giftProductName: String(tr.dataset.giftName ?? $(".gift-name", tr)?.textContent ?? "").trim(),
+            quantity: Number(tr.dataset.quantity ?? $(".gift-qty input", tr)?.value ?? 1)
+          })).filter(g => g.quantity > 0);
+        }
+
+        // ===== 統一組成 payload（新增/編輯兩用） =====
+        function buildOrderPayload({ isEdit }) {
+          const details = collectDetailsFromUI();
+          if (!details.length) {
+            // 不要在這裡用頂層 return；用 throw 交給呼叫端處理
+            throw new Error("請至少加入一項商品（details 不可為空）");
+          }
+
+          const paymentName  = document.querySelector("#editPaymentMethod")?.selectedOptions[0]?.text?.trim() ?? "";
+          const deliveryName = document.querySelector("#editDeliveryMethod")?.selectedOptions[0]?.text?.trim() ?? "";
+
+          return {
+            id: isEdit ? Number(document.getElementById("editOrderId")?.value ?? 0) : 0,
+            user_id: Number(document.getElementById("editUserId")?.value ?? 0),
+            total_amount: Number((document.getElementById("editTotalAmount")?.value ?? "0").replace(/[, ]/g,"")),
+            shipping_fee: Number((document.getElementById("editShippingFee")?.value ?? "0").replace(/[, ]/g,"")),
+            used_points: Number((document.getElementById("editUsedPoints")?.value ?? "0").replace(/[, ]/g,"")),
+            category: document.querySelector("#editCategory")?.selectedOptions[0]?.text?.trim() ?? "",
+            status:   document.querySelector("#editStatus")?.selectedOptions[0]?.text?.trim() ?? "",
+            order_date: new Date().toISOString(),
+            payment_method:  paymentName,
+            delivery_method: deliveryName,
+            recipient_name: document.getElementById("editRecipientName")?.value?.trim() ?? "",
+            phone:          document.getElementById("editPhone")?.value?.trim() ?? "",
+            address:        document.getElementById("editAddress")?.value?.trim() ?? "",
+            zip_code:       document.getElementById("editZipCode")?.value?.trim() ?? "",
+            details,
+            gifts: [] // 有需要再收集
+          };
+        }
+
+
+
+        function cleanupModal() {
+            console.log('開始清理模態框和背景遮罩...');
+
+            // 1. 移除所有背景遮罩
+            document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+                backdrop.remove();
+            });
+
+            // 2. 移除 body 上的相關樣式和類別
+            document.body.classList.remove('modal-open');
+            document.body.style.removeProperty('overflow');
+            document.body.style.removeProperty('padding-right');
+
+            // 3. 確保模態框已關閉
+            const modalElements = document.querySelectorAll('.modal.show');
+            modalElements.forEach(modalEl => {
+                try {
+                    const modalInstance = bootstrap.Modal.getInstance(modalEl);
+                    if (modalInstance) modalInstance.hide();
+
+                    // 如果 Bootstrap hide() 方法無效，直接修改 DOM
+                    modalEl.classList.remove('show');
+                    modalEl.style.display = 'none';
+                    modalEl.setAttribute('aria-hidden', 'true');
+                    modalEl.removeAttribute('aria-modal');
+                    modalEl.removeAttribute('role');
+                } catch (error) {
+                    console.warn('嘗試關閉模態框時出錯:', error);
+                }
+            });
+        }
+
+
+
+
+                // 新增一個通用錯誤提示功能
+        function showToast(message, type = 'info') {
+          // 如果已有 toast 元素，則移除
+          const existingToast = document.querySelector('.toast-container');
+          if (existingToast) {
+            existingToast.remove();
+          }
+
+          // 建立新的 toast 元素
+          const toastContainer = document.createElement('div');
+          toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+          toastContainer.style.zIndex = '5000';
+
+          toastContainer.innerHTML = `
+            <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+              <div class="toast-header bg-${type} text-white">
+                <strong class="me-auto">系統訊息</strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+              </div>
+              <div class="toast-body">
+                ${message}
+              </div>
+            </div>
+          `;
+
+          document.body.appendChild(toastContainer);
+
+          // 5秒後自動關閉
+          setTimeout(() => {
+            const toast = bootstrap.Toast.getOrCreateInstance(toastContainer.querySelector('.toast'));
+            toast.hide();
+          }, 5000);
+        }
+
+
+
+
+                // 修改 loadPaymentMethods 函數以正確處理付款方式的屬性名稱
+        async function loadPaymentMethods() {
+          try {
+            console.log('開始載入付款方式列表...');
+            const response = await fetch('/api/OrdersAPI/payment-methods');
+            if (!response.ok) throw new Error(`無法獲取付款方式列表 (${response.status})`);
+
+            const responseText = await response.text();
+            console.log('付款方式API原始回應:', responseText);
+
+            let result;
+            try {
+              result = JSON.parse(responseText);
+            } catch (err) {
+              console.error('JSON解析錯誤:', err);
+              throw new Error('無法解析付款方式資料');
+            }
+
+            // 處理可能的資料結構差異
+            const paymentMethods = result.data || result;
+
+            if (!Array.isArray(paymentMethods)) {
+              throw new Error('付款方式資料格式不正確');
+            }
+
+            // 記錄每個付款方式的詳細資訊，確認正確的屬性名稱
+            paymentMethods.forEach(method => {
+              // 使用 method_name 而不是 methodName (遵循 PaymentMethodDto 的 JsonPropertyName 設定)
+              console.log(`付款方式: ID=${method.id}, 名稱=${method.method_name}`);
+            });
+
+            // 更新新增訂單的付款方式下拉選單
+            updatePaymentMethodSelect('paymentMethod', paymentMethods);
+
+            // 更新編輯訂單的付款方式下拉選單
+            updatePaymentMethodSelect('editPaymentMethod', paymentMethods);
+
+            return paymentMethods;
+          } catch (error) {
+            console.error('載入付款方式失敗:', error);
+            showToast(`無法載入付款方式列表: ${error.message}`, 'danger');
+            return [];
+          }
+        }
+
+        // 新增一個輔助函數來統一處理付款方式的選擇器更新
+        function updatePaymentMethodSelect(selectId, methods) {
+          const select = document.getElementById(selectId);
+          if (!select) {
+            console.warn(`找不到 ${selectId} 元素`);
+            return;
+          }
+
+          select.innerHTML = '<option value="">選擇付款方式</option>';
+          methods.forEach(method => {
+            const option = document.createElement('option');
+            option.value = method.id; // 使用 ID 作為值
+            option.textContent = method.method_name; // 使用 method_name 顯示名稱
+            select.appendChild(option);
+          });
+
+          console.log(`成功更新 ${selectId} 的選項`);
+        }
+
+
+        // 修改 updateDeliveryMethodSelect 函數
+        function updateDeliveryMethodSelect(selectId, methods) {
+          const select = document.getElementById(selectId);
+          if (!select) {
+            console.warn(`找不到 ${selectId} 元素`);
+            return;
+          }
+
+          select.innerHTML = '<option value="">選擇運送方式</option>';
+
+          methods.forEach(method => {
+            // 檢查屬性名稱，獲取方法的 ID 和名稱
+            const id = method.id || method.shipping_id || 0;
+            const name = method.shipping_name || method.shippingName || method.name || method.method_name || '';
+
+            if (!name) {
+              console.warn('找不到運送方式名稱:', method);
+              return;
+            }
+
+            const option = document.createElement('option');
+            // 使用 ID 作為值，而不是名稱
+            option.value = id;
+            option.textContent = name;
+            select.appendChild(option);
+            console.log(`添加運送方式: ${name}, ID=${id || '無'}`);
+          });
+
+          console.log(`成功更新 ${selectId} 的選項`);
+        }
+
+
+// 修正載入訂單類型函數
+async function loadOrderCategories() {
+  try {
+    console.log('開始載入訂單類型...');
+    const response = await fetch('/api/OrdersAPI/categories');
+    
+    if (!response.ok) {
+      throw new Error(`無法獲取訂單類型 (${response.status})`);
+    }
+    
+    const result = await response.json();
+    console.log('訂單類型API回應:', result);
+    
+    // 處理可能的資料結構差異
+    const categories = result.data || result;
+    
+    if (!Array.isArray(categories)) {
+      throw new Error('訂單類型資料格式不正確');
+    }
+    
+    console.log(`載入了 ${categories.length} 個訂單類型:`, categories);
+    
+    // 更新編輯訂單的類型下拉選單
+    const editCategory = document.getElementById('editCategory');
+    if (editCategory) {
+      editCategory.innerHTML = '<option value="">選擇訂單類型</option>';
+      categories.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category.text;
+        option.textContent = category.text;
+        editCategory.appendChild(option);
+      });
+      console.log('成功更新編輯訂單的類型選項');
+    } else {
+      console.warn('找不到 editCategory 元素');
+    }
+    
+    return categories;
+  } catch (error) {
+    console.error('載入訂單類型失敗:', error);
+    showToast(`無法載入訂單類型: ${error.message}`, 'warning');
+    
+    // 提供預設的訂單類型選項
+    const editCategory = document.getElementById('editCategory');
+    if (editCategory) {
+      editCategory.innerHTML = `
+        <option value="">選擇訂單類型</option>
+        <option value="現貨">現貨</option>
+        <option value="預購">預購</option>
+      `;
+    }
+    
+    return [];
+  }
+}
+
+// 修正顯示編輯訂單模態框時的處理
+async function showEditModal(orderId) {
+  try {
+    // 確保我們已經加載了所有需要的資料
+        await Promise.all([
+          window.productList ? Promise.resolve() : loadProducts(),
+          window.giftList ? Promise.resolve() : loadGifts(),
+          loadPaymentMethods(),
+          loadOrderCategories(),
+          loadDeliveryMethods()            // ★ 加上這行
+        ]);
+
+    
+    // 然後獲取訂單詳情
+    const resp = await fetch(`/api/OrdersAPI/${orderId}`);
+    const text = await resp.text();
+    console.log(`訂單詳情API回應: ${text}`);
+
+    let json;
+    try {
+      json = JSON.parse(text);
+    } catch (err) {
+      console.error('訂單詳情解析錯誤:', err);
+      throw new Error('訂單詳情格式錯誤');
+    }
+
+    if (!resp.ok || !json.success)
+      throw new Error(json.message || '獲取訂單詳情失敗');
+
+    const o = json.data;
+    console.log('訂單詳情:', o);
+
+    // 填值
+    document.getElementById('editOrderId').value = o.id;
+    document.getElementById('editUserId').value = o.user_id;
+    document.getElementById('editTotalAmount').value = o.total_amount;
+    document.getElementById('editStatus').value = o.status;
+    document.getElementById('editCategory').value = o.category;
+        // 在showEditModal函數中修改設置付款方式的代碼
+        const editPaymentMethod = document.getElementById('editPaymentMethod');
+        if (editPaymentMethod) {
+          // 檢查是否已存在選項
+          if (editPaymentMethod.options.length <= 1) {
+            console.warn('付款方式選項尚未載入，重新載入中...');
+            await loadPaymentMethods();
+          }
+
+          // 使用payment_method_id作為選項的值
+          if (o.payment_method_id) {
+            editPaymentMethod.value = o.payment_method_id;
+            console.log(`設置付款方式ID為: ${o.payment_method_id}`);
+          } else {
+            // 如果沒有ID，嘗試根據名稱匹配
+            const paymentMethodName = o.payment_method || '';
+
+            // 遍歷選項找到匹配的名稱
+            let matched = false;
+            for (let i = 0; i < editPaymentMethod.options.length; i++) {
+              if (editPaymentMethod.options[i].textContent === paymentMethodName) {
+                editPaymentMethod.selectedIndex = i;
+                console.log(`根據名稱設置付款方式: ${paymentMethodName}`);
+                matched = true;
+                break;
+              }
+            }
+
+            if (!matched) {
+              console.warn(`找不到匹配的付款方式: ${paymentMethodName}`);
+            }
+          }
+        }
+
+
+    
+    const editCategory = document.getElementById('editCategory');
+    if (editCategory) {
+      // 檢查是否已存在選項
+      if (editCategory.options.length <= 1) {
+        console.warn('訂單類型選項尚未載入，重新載入中...');
+        await loadOrderCategories();
+      }
+      editCategory.value = o.category || '現貨';
+      console.log(`設置訂單類型為: ${o.category || '現貨'}`);
+    }
+
+            const editDelivery = document.getElementById('editDeliveryMethod');
+
+        // 以「ID」設定選取值（正確作法）
+        if (o.delivery_method_id != null) {
+          editDelivery.value = String(o.delivery_method_id);
+        } else if (o.delivery_method) {
+          // 沒有 id 就以文字比對作為後援
+          const text = String(o.delivery_method).trim();
+          [...editDelivery.options].some(opt => {
+            if (opt.textContent.trim() === text) {
+              editDelivery.value = opt.value;
+              return true;
+            }
+            return false;
+          });
+        }
+
+    document.getElementById('editShippingFee').value = o.shipping_fee || 0;
+    document.getElementById('editUsedPoints').value = o.used_points || 0;
+    document.getElementById('editRecipientName').value = o.recipient_name || '';
+    document.getElementById('editAddress').value = o.address || '';
+    document.getElementById('editPhone').value = o.phone || '';
+    document.getElementById('editZipCode').value = o.zip_code || '';
+
+    // 清空訂單明細容器
+    const items = document.getElementById('editOrderItems');
+    items.innerHTML = '';
+
+    // 驗證訂單明細的產品ID
+    let invalidProductCount = 0;
+
+    if (o.details && o.details.length > 0) {
+      for (const detail of o.details) {
+        // 檢查產品ID是否有效
+        if (!detail.productId || detail.productId <= 0) {
+          console.warn(`訂單明細中的產品 ${detail.productName} 沒有有效ID`);
+
+          // 嘗試從產品列表中找到匹配的產品
+          const matchedProduct = window.productList?.find(p =>
+            p.name === detail.productName ||
+            p.name.toLowerCase() === detail.productName.toLowerCase()
+          );
+
+          if (matchedProduct) {
+            console.log(`為產品 ${detail.productName} 找到ID: ${matchedProduct.id}`);
+            detail.productId = matchedProduct.id;
+          } else {
+            invalidProductCount++;
+          }
+        }
+
+        // 添加明細到表單
+        const isValid = addEditItemWithData(detail);
+        if (!isValid) invalidProductCount++;
+      }
+    } else {
+      // 如果沒有明細，新增一個空明細
+      addEditItem();
+    }
+
+    // 如果有無效產品，顯示警告
+    if (invalidProductCount > 0) {
+      showToast(`警告：訂單中有 ${invalidProductCount} 個產品無法識別，請重新選擇有效產品後儲存`, 'warning');
+    }
+
+    // 贈品
+    const gifts = document.getElementById('editGiftItems');
+    gifts.innerHTML = '';
+    (o.gifts || []).forEach(g => addEditGiftWithData(g));
+    if ((o.gifts || []).length === 0) addEditGift();
+
+            // 用這段代碼:
+        const editModalEl = document.getElementById('editModal');
+        // 先清理可能存在的背景遮罩
+        cleanupModal();
+        // 然後顯示模態框
+        const editModalInstance = new bootstrap.Modal(editModalEl);
+        editModalInstance.show();
+    
+    // 資料載入完成後，檢查一下各個選項是否被正確設置
+    console.log('編輯表單載入完成，檢查選項設置情況:');
+    console.log('- 付款方式:', editPaymentMethod.value);
+    console.log('- 訂單類型:', editCategory.value);
+    console.log('- 運送方式:', document.getElementById('editDeliveryMethod').value);
+  } catch (e) {
+    console.error('載入訂單詳情錯誤:', e);
+    showToast(`無法載入訂單詳情: ${e.message}`, 'danger');
+  }
+}
+
+
+
+
+
+        function confirmDeleteOrder(id) {
+          if (confirm(`確定要刪除訂單 #${id} 嗎？此操作無法恢復！`)) deleteOrder(id);
+        }
+
+        async function deleteOrder(id) {
+          try {
+            const resp = await fetch(`/api/OrdersAPI/${id}`, { method: 'DELETE' });
+            const json = await resp.json();
+            if (!resp.ok || !json.success) throw new Error(json.message || '刪除訂單失敗');
+            showToast('訂單已成功刪除', 'success');
+            orders = orders.filter(o => o.id != id);
+            filterOrders();
+          } catch (e) {
+            console.error(e);
+            showToast(e.message, 'danger');
+          }
+        }
+
+        // 更新訂單狀態
+async function updateOrderStatus(selectElement) {
+  try {
+    const orderId = selectElement.dataset.id;
+    const newStatus = selectElement.value;
+    
+    if (!orderId || !newStatus) {
+      throw new Error('訂單ID或狀態無效');
+    }
+    
+    console.log(`正在更新訂單 #${orderId} 狀態為: ${newStatus}`);
+    
+    // 發送狀態更新請求
+    const response = await fetch(`/api/OrdersAPI/${orderId}/status`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ status: newStatus })
+    });
+    
+    const text = await response.text();
+    console.log(`狀態更新API回應: ${text}`);
+    
+    let result;
+    try {
+      result = JSON.parse(text);
+    } catch (err) {
+      console.error('API回應解析錯誤:', err);
+      throw new Error('伺服器回應格式錯誤');
+    }
+    
+    if (!response.ok || !result.success) {
+      throw new Error(result?.message || `更新狀態失敗 (${response.status})`);
+    }
+    
+    showToast(`訂單 #${orderId} 狀態已更新為: ${newStatus}`, 'success');
+    
+    // 如果是已完成或已取消狀態，可能需要更新UI
+    if (newStatus === '已完成' || newStatus === '已取消') {
+      // 選擇性：立即重新載入訂單資料
+      await fetchOrders();
+    }
+  } catch (error) {
+    console.error('更新訂單狀態失敗:', error);
+    showToast(`更新訂單狀態失敗: ${error.message}`, 'danger');
+    
+    // 恢復原來的選擇
+    const originalStatus = orders.find(o => o.id == selectElement.dataset.id)?.status;
+    if (originalStatus) {
+      selectElement.value = originalStatus;
+    }
+  }
+}
+
+        // 修改 collectFormData 函數，匹配實際 HTML 中使用的 ID
+        function collectFormData(formId) {
+            try {
+                const form = document.getElementById(formId);
+                if (!form) return null;
+
+                const isEdit = formId === 'editOrderForm';
+                const prefix = isEdit ? 'edit' : '';
+
+                // 獲取付款方式和運送方式的選擇器
+                const paymentMethodSelect = document.getElementById(`${prefix}PaymentMethod`);
+                const deliveryMethodSelect = document.getElementById(`${prefix}DeliveryMethod`);
+
+                // 確保使用數值ID而非字符串
+                const paymentMethodId = parseInt(paymentMethodSelect?.value) || 0;
+                const deliveryMethodId = parseInt(deliveryMethodSelect?.value) || 0;
+
+                // 取得付款和運送方式的名稱文本
+                const paymentMethodName = paymentMethodSelect?.options[paymentMethodSelect.selectedIndex]?.textContent || '';
+                const deliveryMethodName = deliveryMethodSelect?.options[deliveryMethodSelect.selectedIndex]?.textContent || '';
+
+                // 建立資料物件 - 重要：確保欄位名稱和後端期望的一致
+                const data = {
+                    id: isEdit ? parseInt(document.getElementById('editOrderId')?.value) || 0 : 0,
+                    user_id: parseInt(document.getElementById(`${prefix}UserId`)?.value) || 0,
+                    total_amount: parseFloat(document.getElementById(`${prefix}TotalAmount`)?.value) || 0,
+                    status: document.getElementById(`${prefix}Status`)?.value || '',
+
+                    // 使用數值ID
+                    payment_method_id: paymentMethodId,
+                    delivery_method_id: deliveryMethodId,
+
+                    // 同時保留名稱以兼容舊版
+                    payment_method: paymentMethodName,
+                    delivery_method: deliveryMethodName,
+
+                    shipping_fee: parseFloat(document.getElementById(`${prefix}ShippingFee`)?.value) || 0,
+                    used_points: parseInt(document.getElementById(`${prefix}UsedPoints`)?.value) || 0,
+                    recipient_name: document.getElementById(`${prefix}RecipientName`)?.value || '',
+                    address: document.getElementById(`${prefix}Address`)?.value || '',
+                    phone: document.getElementById(`${prefix}Phone`)?.value || '',
+                    zip_code: document.getElementById(`${prefix}ZipCode`)?.value || '',
+                    category: document.getElementById(`${prefix}Category`)?.value || '現貨',
+                    details: [],
+                    gifts: []
+                };
+
+
+
+            console.log('完成收集表單數據:', data);
+            return data;
+          } catch (error) {
+            console.error('收集表單數據時發生錯誤:', error);
+            showToast(`收集表單數據出錯: ${error.message}`, 'danger');
+            return null;
+          }
+        }
+
+        // 還可以添加一個函數來檢查表單元素是否都存在
+        function checkFormElements() {
+          console.log('檢查新增訂單表單中的所有元素:');
+
+          // 列出所有表單元素
+          const formElements = [
+            'orderForm', 'userId', 'totalAmount', 'status',
+            'paymentMethod', 'deliveryMethod', 'shippingFee',
+            'recipientName', 'address', 'phone', 'usedPoints',
+            'orderItems', 'giftItems'
+          ];
+
+          const results = {};
+          let missing = 0;
+
+          formElements.forEach(id => {
+            const element = document.getElementById(id);
+            results[id] = element ? '存在' : '不存在';
+            if (!element) missing++;
+            console.log(`- ${id}: ${element ? '存在' : '不存在'}`);
+          });
+
+          if (missing > 0) {
+            console.warn(`注意：有 ${missing} 個元素找不到`);
+          } else {
+            console.log('所有元素都存在');
+          }
+
+          return results;
+        }
+   
+
+
+
+              function formatDateTime(dateStr) {
+          try {
+            const date = new Date(dateStr);
+            if (isNaN(date.getTime())) return '無效日期';
+
+            return new Intl.DateTimeFormat('zh-TW', {
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit'
+            }).format(date);
+          } catch (e) {
+            console.error('日期格式化錯誤:', e);
+            return '格式錯誤';
+          }
+        }
+
+
+
+        function showToast(message, type='info') {
+          const div = document.createElement('div');
+          div.className = `alert alert-${type} alert-dismissible fade show fixed-top mx-auto mt-3`;
+          div.style.maxWidth = '400px'; div.style.left='50%'; div.style.transform='translateX(-50%)'; div.style.zIndex='9999';
+          div.innerHTML = `${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+          document.body.appendChild(div);
+          setTimeout(() => { div.classList.remove('show'); setTimeout(()=>div.remove(), 300); }, 3000);
+        }
+
+        // 更新分頁信息和導航按鈕
+        function updatePaginationInfo(totalItems, totalPages, currentPage) {
+          document.getElementById('pageInfo').textContent = `第 ${currentPage} 頁 / 共 ${totalPages} 頁`;
+          document.getElementById('totalItems').textContent = `總計 ${totalItems} 筆資料`;
+
+          // 控制分頁按鈕狀態
+          document.getElementById('firstPage').disabled = currentPage <= 1;
+          document.getElementById('prevPage').disabled = currentPage <= 1;
+          document.getElementById('nextPage').disabled = currentPage >= totalPages;
+          document.getElementById('lastPage').disabled = currentPage >= totalPages;
+
+          // 添加/更新 Bootstrap 分頁組件
+          updateBootstrapPagination(totalItems, totalPages, currentPage, itemsPerPage);
+        }
+
+                // 添加 Bootstrap 分頁組件
+        function updateBootstrapPagination(totalItems, totalPages, currentPage, pageSize) {
+          const container = document.getElementById('paginationContainer');
+          if (!container) {
+            console.warn('找不到分頁容器元素');
+            return;
+          }
+
+          container.innerHTML = '';
+
+          // 添加"上一頁"按鈕
+          const prevLi = document.createElement('li');
+          prevLi.className = `page-item ${currentPage <= 1 ? 'disabled' : ''}`;
+          prevLi.innerHTML = `<a class="page-link" href="javascript:void(0)" aria-label="上一頁"><span aria-hidden="true">&laquo;</span></a>`;
+          if (currentPage > 1) {
+            prevLi.querySelector('a').addEventListener('click', () => {
+              fetchOrders(currentPage - 1, pageSize);
+            });
+          }
+          container.appendChild(prevLi);
+
+          // 決定顯示哪些頁碼
+          let startPage = Math.max(1, currentPage - 2);
+          let endPage = Math.min(totalPages, currentPage + 2);
+
+          // 確保至少顯示 5 個頁碼（如果有的話）
+          if (endPage - startPage + 1 < 5) {
+            if (startPage === 1) {
+              endPage = Math.min(5, totalPages);
+            } else if (endPage === totalPages) {
+              startPage = Math.max(1, totalPages - 4);
+            }
+          }
+
+          // 如果第一頁不在範圍內，添加第一頁和省略號
+          if (startPage > 1) {
+            const firstPageLi = document.createElement('li');
+            firstPageLi.className = 'page-item';
+            firstPageLi.innerHTML = `<a class="page-link" href="javascript:void(0)">1</a>`;
+            firstPageLi.querySelector('a').addEventListener('click', () => {
+              fetchOrders(1, pageSize);
+            });
+            container.appendChild(firstPageLi);
+
+            if (startPage > 2) {
+              const ellipsisLi = document.createElement('li');
+              ellipsisLi.className = 'page-item disabled';
+              ellipsisLi.innerHTML = `<a class="page-link" href="javascript:void(0)">...</a>`;
+              container.appendChild(ellipsisLi);
+            }
+          }
+
+          // 添加頁碼
+          for (let i = startPage; i <= endPage; i++) {
+            const pageLi = document.createElement('li');
+            pageLi.className = `page-item ${i === currentPage ? 'active' : ''}`;
+            pageLi.innerHTML = `<a class="page-link" href="javascript:void(0)">${i}</a>`;
+
+            if (i !== currentPage) {
+              pageLi.querySelector('a').addEventListener('click', () => {
+                fetchOrders(i, pageSize);
+              });
+            }
+
+            container.appendChild(pageLi);
+          }
+
+          // 如果最後一頁不在範圍內，添加省略號和最後一頁
+          if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+              const ellipsisLi = document.createElement('li');
+              ellipsisLi.className = 'page-item disabled';
+              ellipsisLi.innerHTML = `<a class="page-link" href="javascript:void(0)">...</a>`;
+              container.appendChild(ellipsisLi);
+            }
+
+            const lastPageLi = document.createElement('li');
+            lastPageLi.className = 'page-item';
+            lastPageLi.innerHTML = `<a class="page-link" href="javascript:void(0)">${totalPages}</a>`;
+            lastPageLi.querySelector('a').addEventListener('click', () => {
+              fetchOrders(totalPages, pageSize);
+            });
+            container.appendChild(lastPageLi);
+          }
+
+          // 添加"下一頁"按鈕
+          const nextLi = document.createElement('li');
+          nextLi.className = `page-item ${currentPage >= totalPages ? 'disabled' : ''}`;
+          nextLi.innerHTML = `<a class="page-link" href="javascript:void(0)" aria-label="下一頁"><span aria-hidden="true">&raquo;</span></a>`;
+          if (currentPage < totalPages) {
+            nextLi.querySelector('a').addEventListener('click', () => {
+              fetchOrders(currentPage + 1, pageSize);
+            });
+          }
+          container.appendChild(nextLi);
+        }
+
+
+
+
+                // 修改篩選訂單函數，確保正確處理篩選條件
+        function filterOrders() {
+          try {
+            console.log('開始篩選訂單，總數量:', orders.length);
+
+            if (!Array.isArray(orders) || orders.length === 0) {
+              renderOrders([]);
+              return;
+            }
+
+            const status = document.getElementById('statusFilter')?.value || '全部';
+            const category = document.getElementById('categoryFilter')?.value || '全部';
+            const searchField = document.getElementById('searchField')?.value || 'id';
+            const searchTerm = document.getElementById('searchInput')?.value?.toLowerCase() || '';
+            const dateStart = document.getElementById('dateStart')?.value || '';
+            const dateEnd = document.getElementById('dateEnd')?.value || '';
+
+            console.log(`篩選條件: 狀態=${status}, 類型=${category}, 搜尋欄位=${searchField}, 關鍵字=${searchTerm}, 開始日期=${dateStart}, 結束日期=${dateEnd}`);
+
+            const filtered = orders.filter(order => {
+              // 狀態篩選
+              if (status !== '全部' && order.status !== status) {
+                return false;
+              }
+
+              // 類型篩選
+              if (category !== '全部' && order.category !== category) {
+                return false;
+              }
+
+              // 關鍵字搜尋
+              if (searchTerm) {
+                const fieldValue = String(order[searchField] || '').toLowerCase();
+                if (!fieldValue.includes(searchTerm)) {
+                  return false;
+                }
+              }
+
+              // 日期篩選
+              if (dateStart || dateEnd) {
+                const orderDate = new Date(order.order_date);
+
+                if (dateStart) {
+                  const startDate = new Date(dateStart);
+                  if (orderDate < startDate) {
+                    return false;
+                  }
+                }
+
+                if (dateEnd) {
+                  const endDate = new Date(dateEnd);
+                  endDate.setHours(23, 59, 59, 999); // 設為當天最後一秒
+                  if (orderDate > endDate) {
+                    return false;
+                  }
+                }
+              }
+
+              return true;
+            });
+
+            console.log(`篩選後訂單數量: ${filtered.length}`);
+
+            // 重置分頁到第一頁
+            currentPage = 1;
+
+            // 渲染篩選後的訂單
+            renderOrders(filtered);
+
+          } catch (error) {
+            console.error('篩選訂單時發生錯誤:', error);
+            showToast('篩選訂單時發生錯誤: ' + error.message, 'danger');
+          }
+        }
+
+
+
+ 
+
+        document.addEventListener('DOMContentLoaded', async () => {
+          try {
+            console.log('頁面初始化開始...');
+
+            // 1. 清除所有可能重複的事件監聽器（通過克隆元素）
+            function rebindElement(id, eventType, handler) {
+              const element = document.getElementById(id);
+              if (!element) {
+                console.warn(`找不到元素: ${id}`);
+                return null;
+              }
+
+              // 克隆元素以清除所有現有事件
+              const newElement = element.cloneNode(true);
+              element.parentNode.replaceChild(newElement, element);
+
+              // 添加新的事件監聽器
+              newElement.addEventListener(eventType, handler);
+              console.log(`已重新綁定 ${id} 的 ${eventType} 事件`);
+
+              return newElement;
+            }
+
+                    // 在 DOMContentLoaded 內部添加這段代碼
+        const editModal = document.getElementById('editModal');
+        if (editModal) {
+            editModal.addEventListener('hidden.bs.modal', function() {
+                console.log('編輯模態框已隱藏，執行清理...');
+                cleanupModal();
+            });
+        }
+
+                // 在 DOMContentLoaded 內部添加這段代碼
+        document.querySelectorAll('[data-bs-dismiss="modal"]').forEach(button => {
+            button.addEventListener('click', function() {
+                console.log('模態框關閉按鈕被點擊，預備清理');
+                // 延遲執行清理，等待 Bootstrap 的關閉動畫完成
+                setTimeout(cleanupModal, 300);
+            });
+        });
+
+            // 2. 篩選和分頁控制事件綁定
+            document.getElementById('statusFilter').addEventListener('change', filterOrders);
+            document.getElementById('categoryFilter').addEventListener('change', filterOrders);
+            document.getElementById('searchField').addEventListener('change', filterOrders);
+            document.getElementById('searchInput').addEventListener('input', filterOrders);
+            document.getElementById('dateStart').addEventListener('change', filterOrders);
+            document.getElementById('dateEnd').addEventListener('change', filterOrders);
+
+            // 分頁事件綁定
+            document.getElementById('firstPage').addEventListener('click', () => {
+              fetchOrders(1, itemsPerPage);
+            });
+            document.getElementById('prevPage').addEventListener('click', () => {
+              if (currentPage > 1) fetchOrders(currentPage - 1, itemsPerPage);
+            });
+            document.getElementById('nextPage').addEventListener('click', () => {
+              fetchOrders(currentPage + 1, itemsPerPage);
+            });
+            document.getElementById('lastPage').addEventListener('click', () => {
+              // 可能需要獲取總頁數，或者讓後端返回它
+              fetchOrders(999999, itemsPerPage); // 使用一個很大的數字，後端會限制到最後一頁
+            });
+            document.getElementById('itemsPerPage').addEventListener('change', (e) => {
+              itemsPerPage = parseInt(e.target.value);
+              fetchOrders(1, itemsPerPage); // 更改每頁顯示數量時，返回第一頁
+            });
+
+            // 3. 載入基礎數據
+            try {
+              await loadOrderStatuses();
+              console.log('訂單狀態載入完成');
+
+              await Promise.all([
+                loadDeliveryMethods(),
+                loadPaymentMethods(),
+                loadProducts(),
+                loadGifts(),
+                loadOrderCategories()
+              ]);
+              console.log('基礎數據載入完成');
+
+              await fetchOrders();
+              console.log('訂單數據載入完成');
+            } catch (error) {
+              console.error('數據載入失敗:', error);
+              showToast('部分數據載入失敗，某些功能可能不可用', 'warning');
+            }
+
+            // 4. 模態框相關事件綁定
+            // 使用模態框顯示事件綁定
+            const orderModal = document.getElementById('orderModal');
+            if (orderModal) {
+              const newOrderModal = orderModal.cloneNode(true);
+              orderModal.parentNode.replaceChild(newOrderModal, orderModal);
+              newOrderModal.addEventListener('show.bs.modal', setupOrderModal);
+              console.log('訂單模態框顯示事件已綁定');
+            }
+
+            // 5. 按鈕事件綁定
+            // 提交訂單按鈕
+            rebindElement('submitOrder', 'click', createOrder);
+
+            // 編輯保存按鈕
+            rebindElement('saveEdit', 'click', updateOrder);
+
+            // 添加產品和贈品按鈕
+            rebindElement('addItem', 'click', addOrderItem);
+            rebindElement('addGift', 'click', addGiftItem);
+            rebindElement('addEditItem', 'click', addEditItem);
+            rebindElement('addEditGift', 'click', addEditGift);
+
+            // 6. 監聽數量和單價變更以自動計算總金額
+            const orderItemsContainer = document.getElementById('orderItems');
+            if (orderItemsContainer) {
+              const newContainer = orderItemsContainer.cloneNode(true);
+              orderItemsContainer.parentNode.replaceChild(newContainer, orderItemsContainer);
+              newContainer.addEventListener('change', function(e) {
+                if (e.target.matches('.quantity') || e.target.matches('.unit-price') || e.target.matches('.product-select')) {
+                  calculateTotalAmount();
+                }
+              });
+            }
+
+            // 監聽運費和紅利點數變更
+            rebindElement('shippingFee', 'input', calculateTotalAmount);
+            rebindElement('usedPoints', 'input', calculateTotalAmount);
+
+            // 7. 訂單表格事件委派
+            const orderTableBody = document.getElementById('orderTableBody');
+            if (orderTableBody) {
+              // 事件委派：狀態變更
+              orderTableBody.addEventListener('change', async (e) => {
+                if (e.target.matches('.status-select')) {
+                  await updateOrderStatus(e.target);
+                }
+              });
+
+              // 事件委派：編輯和刪除按鈕
+              orderTableBody.addEventListener('click', async (e) => {
+                if (e.target.matches('.edit-btn')) {
+                  const id = e.target.dataset.id;
+                  showEditModal(id);
+                } else if (e.target.matches('.delete-btn')) {
+                  const id = e.target.dataset.id;
+                  confirmDeleteOrder(id);
+                }
+              });
+            }
+
+            console.log('所有事件綁定完成');
+
+                        // 初始加載
+            await fetchOrders(1, itemsPerPage);
+          } catch (error) {
+            console.error('初始化失敗:', error);
+            showToast('頁面初始化失敗: ' + error.message, 'danger');
+          }
+        });
+
+
+
+
+        // ======= 下面維持你既有的 createItemHTML / addEditItem / addEditGift 等函式 =======
+        // 篩選訂單
+
+
+
+        // 創建訂單項目HTML元素
+        function createItemHTML() {
+          const div = document.createElement('div');
+          div.className = 'order-item mb-2';
+
+          const products = window.productList || [];
+          const productOptions = products.map(p =>
+            `<option value="${p.id}">${p.name}</option>`
+          ).join('');
+
+          div.innerHTML = `
+              <div class="row">
+                  <div class="col-md-5">
+                      <select class="form-select product-select" required>
+                          <option value="">選擇產品</option>
+                          ${productOptions}
+                      </select>
+                  </div>
+                  <div class="col-md-3">
+                      <input type="number" class="form-control quantity" placeholder="數量" min="1" required>
+                  </div>
+                  <div class="col-md-3">
+                      <input type="number" class="form-control unit-price" placeholder="單價" min="0" required>
+                  </div>
+                  <div class="col-md-1">
+                      <button type="button" class="btn btn-sm btn-outline-danger remove-item">
+                          <i class="bi bi-x"></i>
+                      </button>
+                  </div>
+              </div>
+          `;
+
+          // 當選擇產品時自動填入單價
+          const productSelect = div.querySelector('.product-select');
+          productSelect.addEventListener('change', (e) => {
+            const selectedProductId = parseInt(e.target.value);
+            if (selectedProductId) {
+              const product = products.find(p => p.id === selectedProductId);
+              if (product) {
+                div.querySelector('.unit-price').value = product.price;
+              }
+            }
+          });
+
+          return div;
+        }
+
+        // 創建贈品HTML元素
+        function createGiftHTML() {
+          const div = document.createElement('div');
+          div.className = 'gift-item mb-2';
+
+          const gifts = window.giftList || [];
+          const giftOptions = gifts.map(g =>
+            `<option value="${g.id}">${g.name}</option>`
+          ).join('');
+
+          div.innerHTML = `
+              <div class="row">
+                  <div class="col-md-5">
+                      <select class="form-select gift-select" required>
+                          <option value="">選擇贈品</option>
+                          ${giftOptions}
+                      </select>
+                  </div>
+                  <div class="col-md-3">
+                      <input type="number" class="form-control gift-quantity" placeholder="數量" min="1" required>
+                  </div>
+                  <div class="col-md-4 d-flex">
+                      <button type="button" class="btn btn-sm btn-outline-danger remove-gift">
+                          <i class="bi bi-x"></i>
+                      </button>
+                  </div>
+              </div>
+          `;
+          return div;
+        }
+
+        // 綁定移除訂單項目的事件
+        function bindRemoveItemEvents() {
+            document.querySelectorAll('.remove-item').forEach(btn => {
+                btn.removeEventListener('click', removeItem);
+                btn.addEventListener('click', removeItem);
+            });
+        }
+
+        // 確保綁定事件正確
+        function bindRemoveGiftEvents() {
+            document.querySelectorAll('.remove-gift').forEach(btn => {
+                // 移除舊的事件監聽器（避免重複綁定）
+                btn.removeEventListener('click', removeGift);
+                // 添加新的事件監聽器
+                btn.addEventListener('click', removeGift);
+                console.log('已綁定贈品移除按鈕事件');
+            });
+        }
+        // 移除訂單項目
+        function removeItem(e) {
+            const container = e.target.closest('.order-item');
+            if (container && container.parentElement.children.length > 1) {
+                container.remove();
+            }
+        }
+
+        // 移除贈品項目
+        function removeGift(e) {
+            // 找到最近的 gift-item 容器
+            const giftItem = e.target.closest('.gift-item');
+            if (giftItem) {
+                console.log('找到贈品項目，準備移除');
+                giftItem.remove(); // 直接移除贈品項目，不檢查是否為最後一個
+                console.log('贈品項目已成功移除');
+            } else {
+                console.warn('無法找到要移除的贈品項目元素');
+            }
+        }
+
+                // 移除重複的 addGiftItem 函數，只保留第一個優化版本的函數
+        function addOrderItem() {
+            console.log('執行 addOrderItem 函數');
+            const orderItems = document.getElementById('orderItems');
+            if (!orderItems) {
+                console.error('找不到orderItems容器');
+                return;
+            }
+
+            if (!window.productList || window.productList.length === 0) {
+                console.warn('產品列表尚未載入或為空');
+                showToast('產品列表尚未載入，請重新整理頁面', 'warning');
+                return;
+            }
+
+            const item = createItemHTML();
+            orderItems.appendChild(item);
+            bindRemoveItemEvents();
+            console.log('成功新增訂單項目');
+
+            // 預設選擇第一個產品
+            const select = item.querySelector('.product-select');
+            if (select && select.options.length > 1) {
+                select.selectedIndex = 1;
+                // 觸發change事件以自動填充價格
+                select.dispatchEvent(new Event('change'));
+            }
+
+            // 預設數量為1
+            const quantity = item.querySelector('.quantity');
+            if (quantity) {
+                quantity.value = 1;
+            }
+        }
+
+        function addGiftItem() {
+            console.log('執行 addGiftItem 函數');
+            const giftItems = document.getElementById('giftItems');
+            if (!giftItems) {
+                console.error('找不到giftItems容器');
+                return;
+            }
+
+            if (!window.giftList || window.giftList.length === 0) {
+                console.warn('贈品列表尚未載入或為空');
+                showToast('贈品列表尚未載入，請重新整理頁面', 'warning');
+                return;
+            }
+
+            const item = createGiftHTML();
+            giftItems.appendChild(item);
+            bindRemoveGiftEvents();
+            console.log('成功新增贈品項目');
+
+            // 預設選擇第一個贈品
+            const select = item.querySelector('.gift-select');
+            if (select && select.options.length > 1) {
+                select.selectedIndex = 1;
+            }
+
+            // 預設數量為1
+            const quantity = item.querySelector('.gift-quantity');
+            if (quantity) {
+                quantity.value = 1;
+            }
+        }
+
+                function addOrderItem() {
+          console.log('執行 addOrderItem 函數');
+          const orderItems = document.getElementById('orderItems');
+          if (!orderItems) {
+            console.error('找不到orderItems容器');
+            return;
+          }
+
+          if (!window.productList || window.productList.length === 0) {
+            console.warn('產品列表尚未載入或為空');
+            showToast('產品列表尚未載入，請重新整理頁面', 'warning');
+            return;
+          }
+
+          const item = createItemHTML();
+          orderItems.appendChild(item);
+          bindRemoveItemEvents();
+          console.log('成功新增訂單項目');
+
+          // 預設選擇第一個有效產品
+          const select = item.querySelector('.product-select');
+          if (select && select.options.length > 1) {
+            select.selectedIndex = 1; // 第一個有效選項
+            // 觸發change事件以自動填充價格
+            select.dispatchEvent(new Event('change'));
+          }
+
+          // 預設數量為1
+          const quantity = item.querySelector('.quantity');
+          if (quantity) {
+            quantity.value = 1;
+          }
+
+          // 計算並更新總金額
+          calculateTotalAmount();
+        }
+
+                function calculateTotalAmount() {
+          // 找出所有訂單明細
+          const orderItems = document.getElementById('orderItems');
+          if (!orderItems) return;
+
+          const items = orderItems.querySelectorAll('.order-item');
+          let total = 0;
+
+          // 累加每個產品的小計
+          items.forEach(item => {
+            const quantity = parseInt(item.querySelector('.quantity')?.value || 0);
+            const unitPrice = parseFloat(item.querySelector('.unit-price')?.value || 0);
+            if (quantity > 0 && unitPrice > 0) {
+              total += quantity * unitPrice;
+            }
+          });
+
+          // 加上運費
+          const shippingFee = parseFloat(document.getElementById('shippingFee')?.value || 0);
+          total += shippingFee;
+
+          // 減去紅利點數
+          const usedPoints = parseInt(document.getElementById('usedPoints')?.value || 0);
+          total -= usedPoints;
+
+          // 確保總金額不為負數
+          total = Math.max(0, total);
+
+          // 更新總金額欄位
+          const totalAmountField = document.getElementById('totalAmount');
+          if (totalAmountField) {
+            totalAmountField.value = total.toFixed(0);
+          }
+        }
+                // 2. 修改 setupOrderModal 函數，確保正確初始化所有欄位
+        async function setupOrderModal() {
+          try {
+            console.log('設置新增訂單表單預設值');
+                        // 先檢查表單所有元素是否存在
+            checkFormElements();
+
+
+                    // 2.1 清空項目容器
+            const orderItems = document.getElementById('orderItems');
+            const giftItems = document.getElementById('giftItems');
+
+            if (orderItems) orderItems.innerHTML = '';
+            if (giftItems) giftItems.innerHTML = '';
+
+            // 2.2 確保必填欄位已載入
+            await Promise.all([
+              window.orderStatusList ? Promise.resolve() : loadOrderStatuses(),
+              window.productList ? Promise.resolve() : loadProducts(),
+              window.paymentMethods ? Promise.resolve() : loadPaymentMethods(),
+              window.deliveryMethods ? Promise.resolve() : loadDeliveryMethods()
+            ]);
+
+            // 2.3 用戶ID 預設值
+            let validUserId = 1;
+            try {
+              const response = await fetch('/api/MembersAPI/valid-ids');
+              if (response.ok) {
+                const result = await response.json();
+                if (result.success && result.data && result.data.length > 0) {
+                  validUserId = result.data[0];
+                }
+              }
+            } catch (error) {
+              console.warn('獲取有效用戶ID失敗，使用預設值:', error);
+            }
+
+            // 2.4 設定主要欄位的預設值
+            document.getElementById('userId').value = validUserId;
+            document.getElementById('totalAmount').value = '0';
+
+            // 2.5 設定訂單狀態
+            const statusSelect = document.getElementById('status');
+            if (statusSelect) {
+              // 如果還沒有選項，加入預設選項
+              if (statusSelect.options.length === 0 && window.orderStatusList) {
+                window.orderStatusList.forEach(status => {
+                  const option = document.createElement('option');
+                  option.value = status.statusName;
+                  option.textContent = status.statusName;
+                  statusSelect.appendChild(option);
+                });
+              }
+
+              // 優先選擇「待處理」狀態
+              let found = false;
+              for (let i = 0; i < statusSelect.options.length; i++) {
+                if (statusSelect.options[i].value === '待處理') {
+                  statusSelect.selectedIndex = i;
+                  found = true;
+                  break;
+                }
+              }
+
+              // 如果沒找到「待處理」，選擇第一個選項
+              if (!found && statusSelect.options.length > 0) {
+                statusSelect.selectedIndex = 0;
+              }
+
+              console.log(`訂單狀態已設定為: ${statusSelect.value}`);
+            }
+
+            // 2.6 設定付款方式
+            const paymentMethod = document.getElementById('paymentMethod');
+            if (paymentMethod && paymentMethod.options.length > 0) {
+              // 跳過空選項，選擇第一個有值的選項
+              for (let i = 0; i < paymentMethod.options.length; i++) {
+                if (paymentMethod.options[i].value) {
+                  paymentMethod.selectedIndex = i;
+                  break;
+                }
+              }
+              console.log(`付款方式已設定為: ${paymentMethod.value} (${paymentMethod.options[paymentMethod.selectedIndex]?.textContent || ''})`);
+            }
+
+            // 2.7 設定運送方式
+            const deliveryMethod = document.getElementById('deliveryMethod');
+            if (deliveryMethod && deliveryMethod.options.length > 0) {
+              // 跳過空選項，選擇第一個有值的選項
+              for (let i = 0; i < deliveryMethod.options.length; i++) {
+                if (deliveryMethod.options[i].value) {
+                  deliveryMethod.selectedIndex = i;
+                  break;
+                }
+              }
+              console.log(`運送方式已設定為: ${deliveryMethod.value} (${deliveryMethod.options[deliveryMethod.selectedIndex]?.textContent || ''})`);
+            }
+
+            // 2.8 設定收件資訊預設值
+            document.getElementById('recipientName').value = '預設收件人';
+            document.getElementById('address').value = '台北市大安區信義路100號';
+            document.getElementById('phone').value = '0912345678';
+            document.getElementById('shippingFee').value = '100';
+            document.getElementById('usedPoints').value = '0';
+
+            // 2.9 提高按鈕的可見性
+            enhanceButtons();
+
+            // 2.10 新增至少一個產品項目
+            addOrderItem();
+
+            // 2.11 計算總金額
+            calculateTotalAmount();
+
+            // 2.12 驗證表單並輸出欄位狀態
+            validateAndLogFormState();
+
+            console.log('新增訂單表單設置完成');
+          } catch (error) {
+            console.error('設置新增訂單表單時發生錯誤:', error);
+            showToast('設置訂單表單時發生錯誤: ' + error.message, 'danger');
+          }
+        }
+                // 3. 新增驗證和日誌函數，以便調試
+        function validateAndLogFormState() {
+          console.log('驗證表單並輸出欄位狀態:');
+          const fields = [
+            { id: 'userId', name: '用戶ID' },
+            { id: 'totalAmount', name: '總額' },
+            { id: 'status', name: '訂單狀態' },
+            { id: 'paymentMethod', name: '付款方式' },
+            { id: 'deliveryMethod', name: '運送方式' },
+            { id: 'shippingFee', name: '運費' },
+            { id: 'recipientName', name: '收件人姓名' },
+            { id: 'address', name: '地址' },
+            { id: 'phone', name: '電話' }
+          ];
+
+          fields.forEach(field => {
+            const elem = document.getElementById(field.id);
+            const value = elem ? elem.value : '未找到元素';
+            console.log(`- ${field.name}: ${value} (${elem ? '元素存在' : '元素不存在'})`);
+          });
+
+          // 檢查訂單項目
+          const orderItems = document.getElementById('orderItems');
+          if (orderItems) {
+            const items = orderItems.querySelectorAll('.order-item, .row');
+            console.log(`訂單項目數量: ${items.length}`);
+            items.forEach((item, index) => {
+              const productSelect = item.querySelector('.product-select');
+              const quantity = item.querySelector('.quantity');
+              const unitPrice = item.querySelector('.unit-price');
+
+              console.log(`- 項目 #${index+1}:`);
+              console.log(`  - 產品: ${productSelect?.value || '未找到'} (${productSelect?.options[productSelect?.selectedIndex]?.textContent || ''})`);
+              console.log(`  - 數量: ${quantity?.value || '未找到'}`);
+              console.log(`  - 單價: ${unitPrice?.value || '未找到'}`);
+            });
+          } else {
+            console.warn('找不到訂單項目容器');
+          }
+        }
+
+
+        function enhanceButtons() {
+          // 提高添加產品和贈品按鈕的可見性
+          const addItemBtn = document.getElementById('addItem');
+          if (addItemBtn) {
+            addItemBtn.className = 'btn btn-primary mt-2 w-100';
+            addItemBtn.innerHTML = '<i class="bi bi-plus-circle"></i> 添加產品項目';
+          }
+
+          const addGiftBtn = document.getElementById('addGift');
+          if (addGiftBtn) {
+            addGiftBtn.className = 'btn btn-primary mt-2 w-100';
+            addGiftBtn.innerHTML = '<i class="bi bi-gift"></i> 添加贈品項目';
+          }
+        }
+        function addEditItem() {
+            console.log('執行 addEditItem 函數');
+            const editOrderItems = document.getElementById('editOrderItems');
+            if (!editOrderItems) {
+                console.error('找不到editOrderItems容器');
+                return;
+            }
+
+            if (!window.productList || window.productList.length === 0) {
+                console.warn('產品列表尚未載入或為空');
+                showToast('產品列表尚未載入，請重新整理頁面', 'warning');
+                return;
+            }
+
+            const item = createItemHTML();
+            editOrderItems.appendChild(item);
+            bindRemoveItemEvents();
+            console.log('成功新增編輯訂單項目');
+
+            // 預設選擇第一個產品
+            const select = item.querySelector('.product-select');
+            if (select && select.options.length > 1) {
+                select.selectedIndex = 1;
+                // 觸發change事件以自動填充價格
+                select.dispatchEvent(new Event('change'));
+            }
+
+            // 預設數量為1
+            const quantity = item.querySelector('.quantity');
+            if (quantity) {
+                quantity.value = 1;
+            }
+        }
+
+        // 在編輯模式下新增贈品項目
+        function addEditGift() {
+            console.log('執行 addEditGift 函數');
+            const editGiftItems = document.getElementById('editGiftItems');
+            if (!editGiftItems) {
+                console.error('找不到editGiftItems容器');
+                return;
+            }
+
+            if (!window.giftList || window.giftList.length === 0) {
+                console.warn('贈品列表尚未載入或為空');
+                showToast('贈品列表尚未載入，請重新整理頁面', 'warning');
+                return;
+            }
+
+            const item = createGiftHTML();
+            editGiftItems.appendChild(item);
+            bindRemoveGiftEvents();
+            console.log('成功新增編輯贈品項目');
+
+            // 預設選擇第一個贈品
+            const select = item.querySelector('.gift-select');
+            if (select && select.options.length > 1) {
+                select.selectedIndex = 1;
+            }
+
+            // 預設數量為1
+            const quantity = item.querySelector('.gift-quantity');
+            if (quantity) {
+                quantity.value = 1;
+            }
+        }
+
+                // 去除重複的 updateOrder 函數，只保留使用 apiRequest 的版本
+        // 您已經在代碼中註釋掉了一個版本，但仍需確保只保留一個版本
+
+        // 修改 addEditItemWithData 函數，以更好地處理產品ID
+        function addEditItemWithData(data) {
+            const editOrderItems = document.getElementById('editOrderItems');
+            const item = createItemHTML();
+            editOrderItems.appendChild(item);
+
+            // 選擇對應的產品選項
+            const productSelect = item.querySelector('.product-select');
+            const options = Array.from(productSelect.options);
+
+            // 確保產品ID是數字
+            let productId = parseInt(data.productId) || 0;
+
+            // 記錄調試信息
+            console.log(`處理產品: ${data.productName}, ID: ${productId}`);
+
+            // 優先使用ID進行匹配
+            let matchOption = null;
+            if (productId > 0) {
+                // 嚴格匹配產品ID
+                matchOption = options.find(opt => parseInt(opt.value) === productId);
+                if (matchOption) {
+                    console.log(`按ID匹配到產品: ${matchOption.text}, ID: ${matchOption.value}`);
+                }
+            }
+
+            // 如果沒有匹配到ID，嘗試按名稱匹配
+            if (!matchOption && data.productName) {
+                // 嘗試精確匹配和模糊匹配
+                const productList = window.productList || [];
+                let matchedProduct = null;
+
+                // 1. 精確匹配
+                matchedProduct = productList.find(p =>
+                    p.name.trim().toLowerCase() === data.productName.trim().toLowerCase()
+                );
+
+                // 2. 如果沒有精確匹配，嘗試部分匹配
+                if (!matchedProduct) {
+                    matchedProduct = productList.find(p =>
+                        p.name.toLowerCase().includes(data.productName.toLowerCase()) ||
+                        data.productName.toLowerCase().includes(p.name.toLowerCase())
+                    );
+                }
+
+                if (matchedProduct) {
+                    productId = matchedProduct.id;
+                    data.productId = productId;
+
+                    // 找到對應的選項
+                    matchOption = options.find(opt => parseInt(opt.value) === productId);
+                    if (!matchOption) {
+                        // 創建新選項
+                        const newOption = document.createElement('option');
+                        newOption.value = productId;
+                        newOption.text = matchedProduct.name;
+                        productSelect.appendChild(newOption);
+                        matchOption = newOption;
+                    }
+                }
+            }
+
+            // 設置選中的選項
+            if (matchOption) {
+                matchOption.selected = true;
+            } else {
+                // 如果找不到匹配，顯示警告並允許用戶選擇
+                const defaultOption = document.createElement('option');
+                defaultOption.value = "0";
+                defaultOption.text = `${data.productName || '未知產品'} (請重新選擇)`;
+                defaultOption.className = 'text-danger fw-bold';
+                defaultOption.style.backgroundColor = '#fff3cd';
+                productSelect.appendChild(defaultOption);
+                defaultOption.selected = true;
+
+                // 高亮顯示整行
+                item.style.backgroundColor = '#fff3cd';
+                item.style.borderLeft = '3px solid #ffc107';
+                item.style.padding = '8px';
+
+                console.warn(`產品 "${data.productName}" 找不到有效ID，請重新選擇!`);
+            }
+
+            // 設置數量和單價
+            item.querySelector('.quantity').value = data.quantity || 1;
+            item.querySelector('.unit-price').value = data.unitPrice || 0;
+
+            bindRemoveItemEvents();
+
+            // 添加產品選擇變更事件
+            productSelect.addEventListener('change', function() {
+                const selectedId = parseInt(this.value);
+                // 移除警告樣式
+                item.style.backgroundColor = '';
+                item.style.borderLeft = '';
+
+                if (selectedId > 0) {
+                    const product = window.productList?.find(p => p.id === selectedId);
+                    if (product) {
+                        item.querySelector('.unit-price').value = product.price;
+                    }
+                }
+            });
+
+            return productId > 0;
+        }
+
+        // 在編輯模式下用數據填充贈品項目
+        function addEditGiftWithData(data) {
+            const editGiftItems = document.getElementById('editGiftItems');
+            const item = createGiftHTML();
+            editGiftItems.appendChild(item);
+
+            // 選擇對應的贈品選項
+            const giftSelect = item.querySelector('.gift-select');
+            const options = Array.from(giftSelect.options);
+            const matchOption = options.find(opt => opt.text === data.giftProductName);
+            if (matchOption) {
+                matchOption.selected = true;
+            } else if (data.giftProductName) {
+                // 如果沒有匹配的選項，添加一個新選項
+                const newOption = document.createElement('option');
+                newOption.value = data.id || '999';
+                newOption.text = data.giftProductName;
+                giftSelect.appendChild(newOption);
+                newOption.selected = true;
+            }
+
+            // 設置數量
+            item.querySelector('.gift-quantity').value = data.quantity || '';
+
+            bindRemoveGiftEvents();
+
+        }
+
+        // 載入產品列表
+                async function loadProducts() {
+            try {
+                console.log('開始載入產品列表...');
+                const response = await fetch('/api/ProductsAPI');
+                if (!response.ok) throw new Error(`無法獲取產品列表 (${response.status})`);
+
+                const text = await response.text();
+                console.log(`產品列表API回應: ${text.substring(0, 100)}...`);
+
+                let products;
+                try {
+                    products = JSON.parse(text);
+                } catch (err) {
+                    console.error('產品列表解析錯誤:', err);
+                    throw new Error('產品列表格式錯誤');
+                }
+
+                console.log(`載入了 ${products.length} 個產品`);
+
+                // 儲存產品資料到全域變數，以便後續使用
+                window.productList = products;
+
+                // 將產品名稱轉換為小寫，方便後續比較
+                window.productListLower = products.map(p => ({
+                    id: p.id,
+                    name: p.name.toLowerCase(),
+                    price: p.price
+                }));
+
+                return products;
+            } catch (error) {
+                console.error('載入產品失敗:', error);
+                showToast(`無法載入產品列表: ${error.message}`, 'danger');
+                return [];
+            }
+        }
+
+        // 載入贈品列表
+        async function loadGifts() {
+          try {
+            const response = await fetch('/api/GiftsAPI');
+            if (!response.ok) throw new Error('無法獲取贈品列表');
+            const gifts = await response.json();
+
+            // 儲存贈品資料到全域變數，以便後續使用
+            window.giftList = gifts;
+
+            return gifts;
+          } catch (error) {
+            console.error('載入贈品失敗:', error);
+            showToast('無法載入贈品列表', 'danger');
+            return [];
+          }
+
+        }
+
+    
+
+
+                // 訂單狀態載入函數
+        async function loadOrderStatuses() {
+          try {
+            console.log('開始載入訂單狀態列表...');
+            const response = await fetch('/api/OrdersAPI/statuses');
+
+            if (!response.ok) {
+              console.warn(`訂單狀態 API 回應錯誤 (${response.status})，使用預設狀態列表`);
+              return useDefaultStatuses();
+            }
+
+            const result = await response.json();
+            console.log('狀態API回應:', result);
+
+            if (!result.success || !Array.isArray(result.data)) {
+              console.warn('訂單狀態資料格式不正確，使用預設狀態列表');
+              return useDefaultStatuses();
+            }
+
+            // 將訂單狀態存入全域變數
+            window.orderStatusList = result.data;
+
+            // 更新狀態下拉選單
+            updateStatusDropdowns(result.data);
+
+            return result.data;
+          } catch (error) {
+            console.error('載入訂單狀態失敗:', error);
+            return useDefaultStatuses();
+          }
+        }
+
+                // 使用預設狀態列表
+        function useDefaultStatuses() {
+          const defaultStatuses = [
+            { statusName: '待處理' },
+            { statusName: '處理中' },
+            { statusName: '已出貨' },
+            { statusName: '已完成' },
+            { statusName: '已取消' }
+          ];
+
+          window.orderStatusList = defaultStatuses;
+          updateStatusDropdowns(defaultStatuses);
+
+          return defaultStatuses;
+        }
+
+
+                // 更新所有狀態下拉選單
+        function updateStatusDropdowns(statuses) {
+          // 更新篩選器狀態選項
+          const statusFilter = document.getElementById('statusFilter');
+          if (statusFilter) {
+            statusFilter.innerHTML = '<option value="全部">全部</option>';
+            statuses.forEach(status => {
+              statusFilter.appendChild(createOption(status.statusName, status.statusName));
+            });
+          }
+
+          // 更新新增訂單的狀態下拉選單
+          const statusSelect = document.getElementById('status');
+          if (statusSelect) {
+            statusSelect.innerHTML = '';
+            statuses.forEach(status => {
+              statusSelect.appendChild(createOption(status.statusName, status.statusName));
+            });
+          }
+
+          // 更新編輯訂單的狀態下拉選單
+          const editStatus = document.getElementById('editStatus');
+          if (editStatus) {
+            editStatus.innerHTML = '';
+            statuses.forEach(status => {
+              editStatus.appendChild(createOption(status.statusName, status.statusName));
+            });
+          }
+
+          // 更新條碼掃描的狀態下拉選單
+          const barcodeStatus = document.getElementById('barcodeStatus');
+          if (barcodeStatus) {
+            barcodeStatus.innerHTML = '';
+            statuses.forEach(status => {
+              barcodeStatus.appendChild(createOption(status.statusName, status.statusName));
+            });
+          }
+        }
+
+
+                // 輔助函數：建立選項元素
+        function createOption(value, text) {
+          const option = document.createElement('option');
+          option.value = value;
+          option.textContent = text;
+          return option;
+        }
+
+
+
+
+
+
+        async function loadDeliveryMethods() {
+          try {
+            console.log('開始載入運送方式列表...');
+            const response = await fetch('/api/OrdersAPI/delivery-methods');
+
+            if (!response.ok) {
+              throw new Error(`無法獲取運送方式列表 (${response.status})`);
+            }
+
+            // 使用 text() 先獲取原始回應，方便檢查
+            const responseText = await response.text();
+            console.log('運送方式API原始回應:', responseText);
+
+            let result;
+            try {
+              result = JSON.parse(responseText);
+            } catch (err) {
+              console.error('JSON解析錯誤:', err);
+              throw new Error('無法解析運送方式資料');
+            }
+
+            console.log('解析後的運送方式資料:', result);
+
+            // 處理可能的資料結構差異
+            const deliveryMethods = result.data || result;
+
+            if (!Array.isArray(deliveryMethods)) {
+              throw new Error('運送方式資料格式不正確');
+            }
+
+            // 確保每個方法都有 ID
+            const methodsWithIds = deliveryMethods.map((method, index) => {
+              // 如果沒有 id 屬性，嘗試使用其他可能的屬性或給一個默認值
+              if (!method.id && !method.shipping_id) {
+                console.warn(`運送方式缺少ID: ${method.shipping_name || method.name || '未知'}, 使用索引作為ID: ${index + 1}`);
+                return { ...method, id: index + 1 };
+              }
+              return method;
+            });
+
+            console.log(`載入了 ${methodsWithIds.length} 個運送方式:`, methodsWithIds);
+
+            // 編輯訂單的運送方式下拉選單
+            updateDeliveryMethodSelect('editDeliveryMethod', methodsWithIds);
+
+            // 新增訂單的運送方式下拉選單
+            updateDeliveryMethodSelect('deliveryMethod', methodsWithIds);
+
+            // 保存到全局變量，方便後續使用
+            window.deliveryMethods = methodsWithIds;
+
+            return methodsWithIds;
+          } catch (error) {
+            console.error('載入運送方式失敗:', error);
+            showToast(`無法載入運送方式列表: ${error.message}`, 'danger');
+
+            // 提供預設的運送方式選項
+            const defaultMethods = [
+              { id: 1, shipping_name: '宅配', base_shipping_cost: 100 },
+              { id: 2, shipping_name: '超商取貨', base_shipping_cost: 60 }
+            ];
+
+            // 更新兩個選擇器的預設選項
+            updateDeliveryMethodSelect('editDeliveryMethod', defaultMethods);
+            updateDeliveryMethodSelect('deliveryMethod', defaultMethods);
+
+            // 保存到全局變量
+            window.deliveryMethods = defaultMethods;
+
+            return defaultMethods;
+          }
+        }
+
+                function updateDeliveryMethodSelect(selectId, methods) {
+          const select = document.getElementById(selectId);
+          if (!select) {
+            console.warn(`找不到 ${selectId} 元素`);
+            return;
+          }
+
+          select.innerHTML = '<option value="">選擇運送方式</option>';
+
+          methods.forEach(method => {
+            // 檢查屬性名稱，獲取方法的ID和名稱
+            const id = method.id || method.shipping_id || 0;
+            const name = method.shipping_name || method.shippingName || method.name || '';
+
+            if (!name) {
+              console.warn('找不到運送方式名稱:', method);
+              return;
+            }
+
+            const option = document.createElement('option');
+            // 使用ID作為值，而不是名稱
+            option.value = id;
+            option.textContent = name;
+            select.appendChild(option);
+            console.log(`添加運送方式: ${name}, ID=${id || '無'}`);
+          });
+        }
+
+     
+
+
+
+
+        function validateOrderForm() {
+          console.log('開始驗證訂單表單...');
+          // 獲取表單元素
+          const form = document.getElementById('orderForm');
+          let isValid = true;
+
+          // 重置錯誤樣式
+          form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+
+          // 驗證主要欄位
+          const fieldsToValidate = [
+            { id: 'userId', name: '用戶ID' },
+            { id: 'totalAmount', name: '總額' },
+            { id: 'status', name: '訂單狀態', isSelect: true },
+            { id: 'paymentMethod', name: '付款方式', isSelect: true },
+            { id: 'deliveryMethod', name: '運送方式', isSelect: true },
+            { id: 'shippingFee', name: '運費' },
+            { id: 'recipientName', name: '收件人姓名' },
+            { id: 'address', name: '地址' },
+            { id: 'phone', name: '電話' }
+          ];
+
+          fieldsToValidate.forEach(field => {
+            const element = document.getElementById(field.id);
+            if (!element) {
+              console.warn(`找不到欄位元素: ${field.id}`);
+              return;
+            }
+
+            if (!element.value) {
+              element.classList.add('is-invalid');
+              isValid = false;
+              if (field.isSelect) {
+                showToast(`請選擇${field.name}`, 'warning');
+              } else {
+                showToast(`${field.name}不能為空`, 'warning');
+              }
+              console.log(`欄位驗證失敗: ${field.name} 為空`);
+            } else {
+              console.log(`欄位驗證通過: ${field.name} = ${element.value}`);
+            }
+          });
+
+          // 檢查已添加的項目是否有效（如果有的話）
+          const orderItems = document.getElementById('orderItems');
+          const items = orderItems.querySelectorAll('.order-item');
+
+          console.log(`檢查訂單項目, 共 ${items.length} 個項目`);
+
+          // 不再強制要求至少有一個產品項目
+          if (items.length > 0) {
+            // 如果有添加產品項目，則檢查其有效性
+            let allValid = true;
+            let invalidCount = 0;
+
+            items.forEach((item, index) => {
+              const productSelect = item.querySelector('.product-select');
+              const quantity = item.querySelector('.quantity');
+              const unitPrice = item.querySelector('.unit-price');
+
+              console.log(`檢查項目 #${index+1}:`);
+              console.log(`- 產品: ${productSelect?.value || '未選擇'}`);
+              console.log(`- 數量: ${quantity?.value || '未設置'}`);
+              console.log(`- 單價: ${unitPrice?.value || '未設置'}`);
+
+              // 如果有選擇產品，則需要檢查數量和單價
+              if (productSelect?.value) {
+                if (!quantity?.value || parseInt(quantity.value) <= 0) {
+                  quantity?.classList.add('is-invalid');
+                  allValid = false;
+                  invalidCount++;
+                }
+                if (!unitPrice?.value || parseFloat(unitPrice.value) <= 0) {
+                  unitPrice?.classList.add('is-invalid');
+                  allValid = false;
+                  invalidCount++;
+                }
+              }
+            });
+
+            if (!allValid) {
+              showToast(`產品項目資料不完整，共有 ${invalidCount} 處錯誤，請修正`, 'warning');
+              isValid = false;
+            }
+          }
+
+          console.log(`表單驗證結果: ${isValid ? '通過' : '失敗'}`);
+          return isValid;
+        }
+
+        function checkOrderItems(container) {
+          if (!container) return false;
+
+          // 獲取所有訂單項目
+          const items = container.querySelectorAll('.order-item');
+          if (items.length === 0) return false;
+
+          let hasValidItem = false;
+
+          // 遍歷檢查每個項目
+          items.forEach(item => {
+            const productSelect = item.querySelector('.product-select');
+            const quantity = item.querySelector('.quantity');
+            const unitPrice = item.querySelector('.unit-price');
+
+            // 重置錯誤樣式
+            [productSelect, quantity, unitPrice].forEach(el => el?.classList.remove('is-invalid'));
+
+            // 檢查產品是否已選擇
+            if (!productSelect?.value) {
+              productSelect?.classList.add('is-invalid');
+            }
+            // 檢查數量是否有效
+            else if (!quantity?.value || parseInt(quantity.value) <= 0) {
+              quantity?.classList.add('is-invalid');
+            }
+            // 檢查單價是否有效
+            else if (!unitPrice?.value || parseFloat(unitPrice.value) <= 0) {
+              unitPrice?.classList.add('is-invalid');
+            }
+            // 如果都有效，標記為有效項目
+            else {
+              hasValidItem = true;
+            }
+          });
+
+          return hasValidItem;
+        }
+    </script>
+
+}
+
+
+
+

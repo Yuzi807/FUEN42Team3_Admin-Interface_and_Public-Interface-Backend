@@ -1,0 +1,318 @@
+﻿@model FUEN42Team3.Backend.Models.ViewModels.NewsCreateViewModel
+@{
+    ViewData["Title"] = "新增公告 | GhostToys魔型仔";
+    Layout = "_Layout";
+    <link rel="stylesheet" href="~/css/NewsCreate.css" />
+}
+
+<div class="page-inner">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">新增公告</h4>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Create" asp-controller="News" method="post" enctype="multipart/form-data" id="newsForm">
+                        <!-- 錯誤訊息區域 -->
+                        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                        <!-- 公告標題 -->
+                        <div class="mb-3">
+                            <label asp-for="Title" class="form-label">公告標題</label>
+                            <div class="col-md-6">
+                                <input class="form-control" type="text" asp-for="Title" required>
+                                <span asp-validation-for="Title" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <!-- 公告類別 -->
+                        <div class="mb-3">
+                            <label asp-for="CategoryId" class="form-label">公告類別</label>
+                            <select class="form-select" asp-for="CategoryId" asp-items="ViewBag.Categories" required style="width: auto;">
+                                <option value="">請選擇公告類別</option>
+                            </select>
+                            <span asp-validation-for="CategoryId" class="text-danger"></span>
+                        </div>
+
+                        <!-- 上架選項 -->
+                        <div class="mb-3">
+                            <label class="form-label">上架</label>
+                            <div class="d-flex gap-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" asp-for="IsPublished" id="published_yes" value="true"
+                                           checked>
+                                    <label class="form-check-label" for="published_yes">是</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" asp-for="IsPublished" id="published_no" value="false">
+                                    <label class="form-check-label" for="published_no">否</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 置頂選項 -->
+                        <div class="mb-3">
+                            <label class="form-label">置頂</label>
+                            <div class="d-flex gap-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" asp-for="IsPinned" id="pinned_yes" value="true">
+                                    <label class="form-check-label" for="pinned_yes">是</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" asp-for="IsPinned" id="pinned_no" value="false"
+                                           checked>
+                                    <label class="form-check-label" for="pinned_no">否</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 縮圖上傳 -->
+                        <div class="mb-3">
+                            <label asp-for="ImageFile" class="form-label">縮圖</label>
+                            <div class="d-flex align-items-center gap-3">
+                                <input type="file" class="form-control" id="thumbnail" asp-for="ImageFile" accept="image/*"
+                                       style="width: auto;">
+                            </div>
+                            <!-- 圖片預覽區域 -->
+                            <div class="mt-2" id="imagePreview" style="display: none;">
+                                <div class="position-relative d-inline-block">
+                                    <img id="previewImg" src="" alt="預覽圖片"
+                                         style="max-width: 150px; max-height: 150px; border: 1px solid #ddd; border-radius: 4px;">
+                                    <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0"
+                                            onclick="removeImage()" style="margin: -8px;">
+                                        <i class="fa fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 內容編輯器 -->
+                        <div class="mb-3">
+                            <label for="content" class="form-label">內容</label>
+                            <div id="summernote"></div>
+                            <input type="hidden" asp-for="Content" id="content">
+                            <span asp-validation-for="Content" class="text-danger"></span>
+                        </div>
+
+                        <!-- 發佈時間 -->
+                        <div class="mb-3">
+                            <label asp-for="PublishedAt" class="form-label">發佈時間</label>
+                            <input type="datetime-local" class="form-control" asp-for="PublishedAt" id="publish_time"
+                                   style="width: auto;">
+                            <label class="form-text text-muted">若留空則立即發佈。</label>
+                        </div>
+
+                        <!-- 隱藏欄位用於存放狀態 -->
+                        <input type="hidden" asp-for="Status" id="status">
+
+                        <!-- 按鈕 -->
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-outline-dark" onclick="fillTestData()">測試</button>
+                            <button type="button" class="btn btn-primary" onclick="saveDraft()">存為草稿</button>
+                            <button type="button" class="btn btn-info" onclick="previewNews()">預覽</button>
+                            <button type="submit" class="btn btn-success">確認送出</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 預覽 Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="previewModalLabel">公告預覽</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <h2 id="previewTitle" class="mb-3"></h2>
+                <div id="previewContent" class="preview-content"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-lite.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.18/lang/summernote-zh-TW.min.js"></script>
+    <!-- jQuery Validation Scripts -->
+    <partial name="_ValidationScriptsPartial" />
+    <!-- Custom JavaScript for form functionality -->
+    <script>
+        // 設定發佈時間的最小值為當前時間
+        document.addEventListener('DOMContentLoaded', function () {
+            const publishTimeInput = document.getElementById('publish_time');
+            const now = new Date();
+
+            // 設定最小時間為當前時間
+            const minDateTime = now.toISOString().slice(0, 16);
+            publishTimeInput.min = minDateTime;
+
+            // 初始化 Summernote 編輯器
+            $('#summernote').summernote({
+                placeholder: '請在此輸入公告內容...',
+                tabsize: 2,
+                height: 300,
+                lang: 'zh-TW',
+                toolbar: [
+                    ['style', ['style']],
+                    ['font', ['bold', 'underline', 'italic', 'clear']],
+                    ['fontname', ['fontname']],
+                    ['fontsize', ['fontsize']],
+                    ['color', ['color']],
+                    ['para', ['ul', 'ol', 'paragraph']],
+                    ['table', ['table']],
+                    ['insert', ['link', 'picture', 'video']],
+                    ['view', ['fullscreen', 'codeview', 'help']]
+                ],
+                fontNames: ['Arial', 'Arial Black', 'Comic Sans MS', 'Courier New', 'Helvetica Neue', 'Helvetica', 'Impact', 'Lucida Grande', 'Tahoma', 'Times New Roman', 'Verdana', '微軟正黑體', '新細明體'],
+                fontNamesIgnoreCheck: ['微軟正黑體', '新細明體'],
+                callbacks: {
+                    onChange: function (contents) {
+                        // 當編輯器內容變更時，更新隱藏的input
+                        $('#content').val(contents);
+                    }
+                }
+            });
+
+            // 如果有初始值，設定到summernote
+            const initialContent = $('#content').val();
+            if (initialContent) {
+                $('#summernote').summernote('code', initialContent);
+            }
+        });
+
+        // 發佈時間變更時驗證
+        document.getElementById('publish_time').addEventListener('change', function (e) {
+            const selectedTime = new Date(e.target.value);
+            const now = new Date();
+
+            if (selectedTime < now) {
+                alert('發佈時間不能設定為過去的時間！');
+                const minDateTime = now.toISOString().slice(0, 16);
+                e.target.value = minDateTime;
+            }
+        });
+
+        // 圖片預覽功能
+        document.getElementById('thumbnail').addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            const preview = document.getElementById('imagePreview');
+            const previewImg = document.getElementById('previewImg');
+
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    previewImg.src = e.target.result;
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                preview.style.display = 'none';
+            }
+        });
+
+        // 移除圖片功能
+        function removeImage() {
+            document.getElementById('thumbnail').value = '';
+            document.getElementById('imagePreview').style.display = 'none';
+        }
+
+        // 存為草稿功能
+        function saveDraft() {
+            // 取得 Summernote 內容並設定到隱藏欄位
+            const content = $('#summernote').summernote('code');
+            $('#content').val(content);
+            
+            // 設定狀態為 draft
+            document.getElementById('status').value = 'draft';
+            
+            // 檢查必填欄位
+            if (!document.getElementById('Title').value) {
+                alert('請輸入公告標題！');
+                return;
+            }
+            
+            if (!document.getElementById('CategoryId').value) {
+                alert('請選擇公告類別！');
+                return;
+            }
+
+            // 提交表單
+            document.getElementById('newsForm').submit();
+        }
+
+        // 預覽功能
+        function previewNews() {
+            const title = document.getElementById('Title').value;
+            const content = $('#summernote').summernote('code');
+            
+            if (!title) {
+                alert('請輸入公告標題以預覽！');
+                return;
+            }
+            
+            if (!content || content.trim() === '' || content === '<p><br></p>') {
+                alert('請輸入公告內容以預覽！');
+                return;
+            }
+            
+            // 設定預覽 Modal 的內容
+            document.getElementById('previewTitle').textContent = title;
+            document.getElementById('previewContent').innerHTML = content;
+            
+            // 顯示 Modal
+            const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+            previewModal.show();
+        }
+
+        // 表單提交前的檢查
+        document.getElementById('newsForm').addEventListener('submit', function (e) {
+            // 設定狀態為 published (如果未修改)
+            if (!document.getElementById('status').value) {
+                document.getElementById('status').value = 'published';
+            }
+
+            // 取得 Summernote 內容並設定到隱藏欄位
+            const content = $('#summernote').summernote('code');
+            $('#content').val(content);
+
+            // 驗證發佈時間
+            const publishTime = document.getElementById('publish_time').value;
+            if (publishTime) {
+                const selectedTime = new Date(publishTime);
+                const now = new Date();
+
+                if (selectedTime < now) {
+                    alert('發佈時間不能設定為過去的時間！');
+                    e.preventDefault();
+                    return;
+                }
+            }
+
+            // 驗證內容不能為空
+            if (!content || content.trim() === '' || content === '<p><br></p>') {
+                alert('請輸入公告內容！');
+                e.preventDefault();
+                return;
+            }
+        });
+                function fillTestData() {
+            // 填入公告標題
+            document.querySelector('input[name="Title"]').value = "S.H.Figuarts《超級瑪利歐》瑪利歐可動人偶 世界最知名水管工將在2026年2月再次登場！";
+
+            // 填入內容（使用 Summernote 編輯器）
+            const testContent = "<p><img src='https://img.toy-people.com/member/17539276661_1200.png' alt='S.H.Figuarts 瑪利歐' style='max-width:640px;display:block;margin:30px auto;'></p><p>日本 BANDAI SPIRITS 收藏玩具事業部 TAMASHII NATIONS 之可動人偶品牌「S.H.Figuarts」早先宣佈要讓《超級瑪利歐》系列角色 <a href='https://www.toy-people.com/?p=101846' target='_blank'>回歸</a> 的消息一公開，相信就讓許多玩具人相當興奮！今（31）日終於發表了詳細資訊。本篇將帶來 <strong>「S.H.Figuarts 瑪利歐」</strong> 可動人偶商品情報！預計 2026 年 2 月開始發售，建議售價為 4,000 日幣。</p><p><img src='https://img.toy-people.com/member/175392741041_1200.jpg' alt='商品圖片1' style='max-width:640px;display:block;margin:30px auto;'></p><p><img src='https://img.toy-people.com/member/175392740825_1200.jpg' alt='商品圖片2' style='max-width:640px;display:block;margin:30px auto;'></p><p>將在 2026 年回歸的「S.H.Figuarts 瑪利歐」本體高約 10 公分，依照遊戲設定充分還原了圓潤矮短的身形、圓鼻子、兩側往上翹的經典鬍子，以及紅藍配色的吊帶褲服裝造型。與 2018 年推出的 <a href='https://tamashiiweb.com/item/12389/' target='_blank'>新裝版本</a> 相比，配件依舊附上了問號磚塊、超級蘑菇、金幣一枚，不過新增了開掌替換手、金幣用支架，以及代表瑪利歐、印刷了 M 字樣的紅色專用底座；以小編個人的遊玩感受來說，多了一對替換手整體的變化性就差很多啦～！</p><p><img src='https://img.toy-people.com/member/175392740695_1200.jpg' alt='' style='max-width:640px;display:block;margin:30px auto;'></p><p><img src='https://img.toy-people.com/member/17539274076_1200.jpg' alt='' style='max-width:640px;display:block;margin:30px auto;'></p><p><img src='https://img.toy-people.com/member/175392740961_1200.jpg' alt='' style='max-width:640px;display:block;margin:30px auto;'></p><p><strong>將在 2026 年強勢回歸的 S.H.Figuarts 《超級瑪利歐》系列商品：</strong><br><a href='https://www.toy-people.com/?p=102158' target='_blank'>S.H.Figuarts《超級瑪利歐》路易吉（ルイージ）可動人偶 永遠的二番手、綠的人氣者現身！</a><br><a href='https://www.toy-people.com/?p=102163' target='_blank'>S.H.Figuarts《超級瑪利歐》耀西（ヨッシー）可動玩具 最可愛的龜龜夥伴！</a><br><a href='https://www.toy-people.com/?p=102186' target='_blank'>S.H.Figuarts《超級瑪利歐》庫巴（クッパ）可動人偶 壯碩的大魔王、口吐火球再襲！</a><br><a href='https://www.toy-people.com/?p=102193' target='_blank'>S.H.Figuarts「超級瑪利歐遊玩套組」（スーパーマリオ プレイセット）搭配可動人偶展現更加豐富的遊戲場景！</a><br><br><strong>S.H.Figuarts マリオ (SUPER MARIO)</strong><br>建議售價：¥4,000，商品規格：高約 10 公分，預計發售日期：2026 年 2 月</p><p><img src='https://img.toy-people.com/member/175392613820_1200.jpg' alt='' style='max-width:640px;display:block;margin:30px auto;'></p><p><img src='https://img.toy-people.com/member/17539261364_1200.jpg' alt='' style='max-width:640px;display:block;margin:30px auto;'></p><p><img src='https://img.toy-people.com/member/175392613777_1200.jpg' alt='' style='max-width:640px;display:block;margin:30px auto;'></p><p><img src='https://img.toy-people.com/member/175392613770_1200.jpg' alt='' style='max-width:640px;display:block;margin:30px auto;'></p><p><img src='https://img.toy-people.com/member/175392613557_1200.jpg' alt='' style='max-width:640px;display:block;margin:30px auto;'></p><p><span style='color:#959595;font-size:13px'>來源：<a href='https://tamashii.jp/' target='_blank' rel='noopener noreferrer'>魂ウェブ</a></span></p>";
+            $('#summernote').summernote('code', testContent);
+            // 同步內容到隱藏欄位（提交用）
+            document.getElementById('content').value = testContent;
+        }
+    </script>
+}

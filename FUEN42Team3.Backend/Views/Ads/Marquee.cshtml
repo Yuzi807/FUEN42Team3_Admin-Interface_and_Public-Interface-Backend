@@ -1,0 +1,206 @@
+﻿@model FUEN42Team3.Backend.Models.ViewModels.AdsViewModel
+@{
+    ViewData["Title"] = "跑馬燈設定 | GhostToys魔型仔";
+}
+
+<div class="page-inner">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">跑馬燈設定</h4>
+            </div>
+            <div class="card-body">
+                <!-- 篩選搜尋區 -->
+                <div class="card shadow-sm mx-3 pb-3">
+                    <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold">
+                            <i class="fas fa-filter mr-1"></i> 篩選搜尋
+                        </h6>
+                        <button class="btn btn-light btn-sm" id="resetMarqueeFilterBtn">
+                            <i class="fas fa-redo"></i> 重設
+                        </button>
+                    </div>
+                    <div class="card-body pb-0">
+                        <div class="row">
+                            <div class="col-md-6 col-sm-12">
+                                <div class="form-group">
+                                    <label>文字搜尋</label>
+                                    <input type="text" class="form-control" id="marquee-text-filter"
+                                           placeholder="輸入跑馬燈文字">
+                                </div>
+                            </div>
+                            <div class="col-md-6 col-sm-12">
+                                <div class="form-group">
+                                    <label>狀態篩選</label>
+                                    <select class="form-control" id="marquee-status-filter">
+                                        <option value="">全部狀態</option>
+                                        <option value="active">已啟用</option>
+                                        <option value="inactive">未啟用</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 操作按鈕 -->
+                <div class="d-flex">
+                    <div class="card-body">
+                        <button class="btn btn-secondary btn-round mb-3 me-2" data-bs-toggle="modal"
+                                data-bs-target="#addMarqueeModal">
+                            <span class="btn-label"><i class="fa fa-plus"></i></span>新增跑馬燈
+                        </button>
+                        <button class="btn btn-primary btn-round mb-3 me-2"
+                                id="marqueeBulkDeleteBtn">
+                            <span class="btn-label"><i class="far fa-trash-alt"></i></span>批量刪除
+                        </button>
+                        <button class="btn btn-success btn-round mb-3 me-2"
+                                id="marqueeSaveOrderBtn">
+                            <span class="btn-label"><i class="far fa-save"></i></span>儲存排序
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 跑馬燈列表表格 -->
+                <div class="table-responsive">
+                    <table id="marquee-datatables" class="display table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th style="width: 3%;">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox"
+                                               id="marquee-select-all">
+                                    </div>
+                                </th>
+                                <th>編號</th>
+                                <th>跑馬燈訊息</th>
+                                <th>連結</th>
+                                <th>排序</th>
+                                <th>狀態</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.MarqueesList)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="form-check">
+                                            <input class="form-check-input marquee-row-check"
+                                                   type="checkbox" value="@item.Id">
+                                        </div>
+                                    </td>
+                                    <td>@item.Id</td>
+                                    <td>@item.Message</td>
+                                    <td>@(string.IsNullOrEmpty(item.Link) ? "-" : item.Link)</td>
+                                    <td>@item.SortOrder</td>
+                                    <td>
+                                    @if (item.IsActive == true)
+                                    {
+                                        <span class="badge badge-success">公開</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-count">隱藏</span>
+                                    }
+                                    </td>
+                                    <td>
+                                        <a href="#" class="edit-category" data-id="@item.Id">
+                                            <i class="fa fa-edit" title="編輯"></i>
+                                        </a>
+                                        &nbsp;
+                                        <a href="#" class="delete-category" data-id="@item.Id">
+                                            <i class="fa fa-times text-danger" title="刪除"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 新增跑馬燈Modal -->
+<div class="modal fade" id="addMarqueeModal" tabindex="-1" aria-labelledby="addMarqueeModalLabel"
+     aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addMarqueeModalLabel">
+                    <i class="fas fa-bullhorn text-primary me-2"></i>新增跑馬燈
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addMarqueeForm" class="needs-validation" novalidate>
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label for="marqueeMessage" class="form-label">
+                                    跑馬燈文字
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control" id="marqueeMessage"
+                                       name="marqueeMessage" placeholder="請輸入跑馬燈顯示文字" maxlength="200"
+                                       required>
+                                <div class="form-text text-muted">
+                                    最多可輸入200個字
+                                </div>
+                                <div class="invalid-feedback">
+                                    請輸入跑馬燈文字
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="marqueeOrder" class="form-label">顯示順序</label>
+                                <input type="number" class="form-control" id="marqueeOrder"
+                                       name="marqueeOrder" min="0" placeholder="輸入數字，數字越小越前面">
+                                <div class="form-text text-muted">
+                                    若不填寫將自動設為 0
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="form-label mb-2">狀態</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox"
+                                           id="marqueeStatus" name="marqueeStatus" checked>
+                                    <label class="form-check-label" for="marqueeStatus">
+                                        啟用此跑馬燈
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label for="marqueeLink" class="form-label">連結網址</label>
+                                <input type="url" class="form-control" id="marqueeLink"
+                                       name="marqueeLink" placeholder="請輸入點擊跑馬燈後的跳轉連結">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>取消
+                </button>
+                <button type="button" class="btn btn-primary" id="saveMarqueeBtn">
+                    <i class="fas fa-save me-1"></i>儲存跑馬燈
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

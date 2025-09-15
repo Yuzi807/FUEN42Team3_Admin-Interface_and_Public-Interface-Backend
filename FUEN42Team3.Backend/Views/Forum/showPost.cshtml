@@ -1,0 +1,55 @@
+﻿@model FUEN42Team3.Backend.Models.EfModels.Post
+
+@{
+    ViewData["Title"] = "查看文章 | GhostToys魔型仔";
+    Layout = "_Layout";
+}
+
+<div class="page-inner">
+    <div class="page-header">
+        <h4 class="page-title">查看文章</h4>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <h3 class="mb-3">@Model.Title</h3>
+
+            <dl class="row">
+                <dt class="col-sm-2">作者</dt>
+                <dd class="col-sm-10">@Model.Member?.UserName</dd>
+
+                <dt class="col-sm-2">分類</dt>
+                <dd class="col-sm-10">@Model.Type?.Name</dd>
+
+                <dt class="col-sm-2">狀態</dt>
+                <dd class="col-sm-10">@Model.Status?.Name</dd>
+
+                <dt class="col-sm-2">發文時間</dt>
+                <dd class="col-sm-10">
+                    @(Model.PostTime.HasValue
+                                        ? Model.PostTime.Value.ToString("yyyy/MM/dd HH:mm:ss")
+                                        : "-")
+                </dd>
+
+                <dt class="col-sm-2">點閱數</dt>
+                <dd class="col-sm-10">@Model.NumOfHits</dd>
+
+                <dt class="col-sm-2">讚數</dt>
+                <dd class="col-sm-10">@Model.NumOfGoods</dd>
+
+                <dt class="col-sm-2">文章內容</dt>
+                <dd class="col-sm-10">
+                    <div class="border p-3 bg-light rounded">@Html.Raw(Model.PostContent)</div>
+                </dd>
+
+                @if (!string.IsNullOrEmpty(Model.ImageUrl))
+                {
+                    <dt class="col-sm-2">封面圖片</dt>
+                    <dd class="col-sm-10">
+                        <img src="@Model.ImageUrl" alt="文章封面" class="img-fluid rounded" style="max-height: 300px;" />
+                    </dd>
+                }
+            </dl>
+        </div>
+    </div>
+</div>

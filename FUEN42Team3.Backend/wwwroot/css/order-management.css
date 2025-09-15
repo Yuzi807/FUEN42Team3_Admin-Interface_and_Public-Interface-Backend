@@ -1,0 +1,219 @@
+body {
+    background-color: #f8f9fa;
+    font-family: 'Noto Sans TC', sans-serif;
+    min-height: 100vh;
+    position: relative;
+}
+
+.main-content {
+    padding: 10px;
+}
+
+.card {
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.table-container {
+    background-color: #ffffff;
+    border-radius: 8px;
+    padding: 15px;
+    overflow-x: auto;
+}
+
+.modal-content {
+    border-radius: 8px;
+}
+
+.form-label {
+    font-weight: 500;
+    margin-bottom: 5px;
+    font-size: 0.9rem;
+    color: #495057;
+}
+
+.action-btn {
+    margin-right: 5px;
+    padding: 5px 10px;
+    font-size: 0.9rem;
+}
+
+.barcode-scanner {
+    max-width: 100%;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    height: 200px;
+    position: relative;
+    overflow: hidden;
+}
+
+.barcode-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6c757d;
+    background: rgba(0, 0, 0, 0.1);
+    z-index: 1;
+}
+
+.filter-panel {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+    gap: 15px;
+    padding: 10px;
+    background-color: #f1f3f5;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.filter-section {
+    padding: 10px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    background-color: #ffffff;
+}
+
+.filter-section h5 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: #212529;
+    text-align: left;
+}
+
+.filter-section .row {
+    margin-bottom: 8px;
+}
+
+.filter-section .row:last-child {
+    margin-bottom: 0;
+}
+
+.action-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    padding-top: 10px;
+    border-top: 1px solid #dee2e6;
+    grid-column: 1 / -1;
+    /* 佔滿整行 */
+}
+
+.order-items-container,
+.gifts-container {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    padding: 8px;
+    border-radius: 4px;
+}
+
+.pagination-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+    padding: 10px 0;
+    border-top: 1px solid #dee2e6;
+}
+
+.pagination-info {
+    font-size: 0.9rem;
+}
+
+.pagination-buttons {
+    display: flex;
+    gap: 5px;
+}
+
+.btn-sm {
+    padding: 2px 8px;
+    font-size: 0.8rem;
+}
+
+@media (max-width: 767px) {
+    .filter-panel {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto;
+    }
+
+    .table-container table {
+        width: 100%;
+        min-width: 600px;
+    }
+
+    .table-container th,
+    .table-container td {
+        white-space: nowrap;
+        padding: 8px;
+        font-size: 0.85rem;
+    }
+
+    .modal-dialog {
+        margin: 0.5rem;
+    }
+
+    .modal-content {
+        width: 100%;
+        margin: 0;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .action-buttons button {
+        width: 100%;
+        margin-bottom: 5px;
+    }
+
+    .pagination-controls {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .pagination-info {
+        margin-bottom: 10px;
+    }
+
+    .pagination-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 5px;
+    }
+}
+
+@media (min-width: 768px) {
+    .filter-panel {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto auto;
+    }
+
+    .barcode-scanner {
+        height: 300px;
+    }
+
+    .order-items-container,
+    .gifts-container {
+        max-height: 300px;
+    }
+
+    .main-content {
+        padding: 20px;
+    }
+
+    .card,
+    .table-container {
+        padding: 20px;
+    }
+}

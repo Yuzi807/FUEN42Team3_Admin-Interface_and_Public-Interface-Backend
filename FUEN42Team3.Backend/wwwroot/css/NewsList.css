@@ -1,0 +1,66 @@
+﻿/* 設定全局中文字體 */
+body,
+table {
+    font-family: "Microsoft JhengHei", "微軟正黑體", sans-serif !important;
+}
+
+/* 調整表格整體樣式 */
+#basic-datatables {
+    width: 100%;
+    font-size: 16px !important;
+    /* 加大字體 */
+}
+
+/* 調整表格標題樣式 */
+.page-header h3 {
+    font-size: 24px !important;
+    font-weight: bold !important;
+}
+
+/* 調整表頭樣式 */
+#basic-datatables thead th {
+    font-size: 17px !important;
+    font-weight: bold !important;
+    padding: 12px 15px !important;
+    background-color: #f8f9fa !important;
+}
+
+/* 欄位寬度由 JavaScript DataTables columnDefs 控制 */
+
+/* 調整表格內容對齊方式 */
+#basic-datatables td {
+    padding: 12px 15px !important;
+    vertical-align: middle !important;
+}
+
+/* 調整操作按鈕間距 */
+.form-button-action button {
+    margin: 0 5px !important;
+}
+
+/* 調整 checkbox 大小 */
+.form-check-input {
+    width: 18px !important;
+    height: 18px !important;
+}
+
+/* 新聞表格欄位寬度固定 */
+#news-datatables th,
+#news-datatables td {
+    table-layout: fixed !important;
+    word-wrap: break-word !important;
+}
+
+/* 分類表格欄位寬度固定 */
+#category-datatables th,
+#category-datatables td {
+    table-layout: fixed !important;
+    word-wrap: break-word !important;
+}
+
+/* 確保表格本身使用固定佈局 */
+#news-datatables,
+#category-datatables {
+    table-layout: fixed !important;
+    width: 100% !important;
+}

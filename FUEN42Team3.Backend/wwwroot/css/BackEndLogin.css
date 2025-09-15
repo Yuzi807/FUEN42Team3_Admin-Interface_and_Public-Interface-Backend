@@ -1,0 +1,338 @@
+﻿html, body {
+    background: white;
+    font-family: "Microsoft JhengHei", "微軟正黑體", sans-serif !important;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.login-container {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 400px;
+    padding: 30px;
+    text-align: center;
+    position: relative;
+    z-index: 10;
+}
+
+.logo {
+    margin-bottom: 20px;
+}
+
+    .logo img {
+        height: 40px;
+    }
+
+h2 {
+    font-size: 24px;
+    margin-bottom: 30px;
+    font-weight: 600;
+}
+
+.form-control {
+    margin-bottom: 15px;
+    border-radius: 4px;
+    padding: 12px 15px;
+}
+
+.btn-login {
+    background-color: #22d3ee;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    padding: 12px;
+    width: 100%;
+    margin-top: 10px;
+    font-weight: 600;
+    transition: background-color 0.3s;
+}
+
+    .btn-login:hover {
+        background-color: #0cb8d2;
+    }
+
+.remember-me {
+    text-align: left;
+    margin: 15px 0;
+    display: flex;
+    align-items: center;
+}
+
+.forgot-password {
+    text-align: right;
+    display: block;
+    color: #22d3ee;
+    text-decoration: none;
+    margin-top: 15px;
+}
+
+.create-account {
+    text-align: center;
+    margin-top: 20px;
+    color: #6c757d;
+}
+
+    .create-account a {
+        color: #22d3ee;
+        text-decoration: none;
+    }
+
+/* 背景裝飾元素 */
+.shape-left {
+    position: absolute;
+    left: 550px;
+    bottom: 100px;
+    width: 300px;
+    height: 300px;
+    background-color: #8b5cf6;
+    border-radius: 50%;
+    opacity: 0.4;
+    z-index: 1;
+    animation: floatLeft 3s ease-in-out infinite;
+}
+
+.shape-right {
+    position: absolute;
+    right: 500px;
+    top: 80px;
+    width: 350px;
+    height: 350px;
+    background-color: #22d3ee;
+    border-radius: 50%;
+    opacity: 0.4;
+    z-index: 1;
+    animation: floatRight 4s ease-in-out infinite;
+}
+
+/* 晃動動畫 */
+@keyframes floatLeft {
+
+    0%, 100% {
+        transform: translateY(0px) translateX(0px);
+    }
+
+    25% {
+        transform: translateY(-10px) translateX(5px);
+    }
+
+    50% {
+        transform: translateY(-5px) translateX(-8px);
+    }
+
+    75% {
+        transform: translateY(-12px) translateX(3px);
+    }
+}
+
+@keyframes floatRight {
+
+    0%, 100% {
+        transform: translateY(0px) translateX(0px);
+    }
+
+    33% {
+        transform: translateY(-8px) translateX(-5px);
+    }
+
+    66% {
+        transform: translateY(-15px) translateX(7px);
+    }
+}
+
+.dot-small {
+    position: absolute;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background-color: #22d3ee;
+    left: 300px;
+    bottom: 200px;
+    z-index: 2;
+    animation: dotFloat1 2.5s ease-in-out infinite;
+}
+
+.dot-medium {
+    position: absolute;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    background-color: #8b5cf6;
+    right: 300px;
+    top: 300px;
+    z-index: 2;
+    animation: dotFloat2 3.5s ease-in-out infinite;
+}
+
+.dot-large {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: #4299e1;
+    right: 250px;
+    bottom: 150px;
+    z-index: 2;
+    animation: dotFloat3 2.8s ease-in-out infinite;
+}
+
+/* 小圓點動畫 */
+@keyframes dotFloat1 {
+
+    0%, 100% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-8px);
+    }
+}
+
+@keyframes dotFloat2 {
+
+    0%, 100% {
+        transform: translateY(0px) translateX(0px);
+    }
+
+    50% {
+        transform: translateY(-6px) translateX(3px);
+    }
+}
+
+@keyframes dotFloat3 {
+
+    0%, 100% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+/* 響應式設計 */
+@media (max-width: 1200px) {
+    .shape-left {
+        left: 400px;
+        width: 250px;
+        height: 250px;
+    }
+
+    .shape-right {
+        right: 350px;
+        width: 280px;
+        height: 280px;
+    }
+
+    .dot-small {
+        left: 200px;
+        bottom: 180px;
+    }
+
+    .dot-medium {
+        right: 200px;
+        top: 250px;
+    }
+
+    .dot-large {
+        right: 150px;
+        bottom: 120px;
+    }
+}
+
+@media (max-width: 992px) {
+    .shape-left {
+        left: 300px;
+        width: 200px;
+        height: 200px;
+    }
+
+    .shape-right {
+        right: 250px;
+        width: 220px;
+        height: 220px;
+    }
+
+    .dot-small {
+        left: 150px;
+        bottom: 160px;
+    }
+
+    .dot-medium {
+        right: 150px;
+        top: 200px;
+    }
+
+    .dot-large {
+        right: 100px;
+        bottom: 100px;
+    }
+}
+
+@media (max-width: 768px) {
+    .shape-left {
+        left: 200px;
+        width: 150px;
+        height: 150px;
+    }
+
+    .shape-right {
+        right: 150px;
+        width: 170px;
+        height: 170px;
+    }
+
+    .dot-small {
+        left: 100px;
+        bottom: 140px;
+    }
+
+    .dot-medium {
+        right: 100px;
+        top: 150px;
+    }
+
+    .dot-large {
+        right: 80px;
+        bottom: 80px;
+    }
+}
+
+@media (max-width: 576px) {
+    .shape-left {
+        left: 100px;
+        width: 120px;
+        height: 120px;
+    }
+
+    .shape-right {
+        right: 80px;
+        width: 130px;
+        height: 130px;
+    }
+
+    .dot-small {
+        left: 60px;
+        bottom: 120px;
+    }
+
+    .dot-medium {
+        right: 60px;
+        top: 120px;
+    }
+
+    .dot-large {
+        right: 40px;
+        bottom: 60px;
+    }
+}body {
+}
